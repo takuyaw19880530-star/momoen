@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>動作チェック</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 26px; background: #ffffff; color: #111; }
+  h1 { font-size: 20px; margin: 0 0 18px; }
+  .line { font-size: 17px; line-height: 1.7; margin: 12px 0; padding: 12px 14px; border-radius: 10px; background: #f2f2f4; }
+  .ok { background: #e3f3e7; color: #1d6b34; }
+  .ng { background: #fbe3df; color: #9d2b1a; }
+</style>
+</head>
+<body>
+  <h1>桃園マネージャー 動作チェック</h1>
+  <div id="out">
+    <div class="line">① この文字が見えていれば、ページ表示の土台はOKです。</div>
+  </div>
+  <script>
+    function add(text, cls) {
+      var d = document.createElement('div');
+      d.className = 'line' + (cls ? ' ' + cls : '');
+      d.textContent = text;
+      document.getElementById('out').appendChild(d);
+    }
+    add('② JavaScript（プログラム）が動いています。', 'ok');
+
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js';
+    s.onload = function () {
+      add('③ ネット上の部品（React）の読み込みに成功しました。アプリも表示できる状態です。', 'ok');
+    };
+    s.onerror = function () {
+      add('③ ネット上の部品（React）の読み込みに失敗しました。広告ブロックアプリか通信制限が原因の可能性が高いです。', 'ng');
+    };
+    document.head.appendChild(s);
+
+    setTimeout(function () {
+      add('（10秒経過のお知らせ：上に③が出ていなければ、ネット上の部品がブロックされています）');
+    }, 10000);
+  </script>
+</body>
+</html>
