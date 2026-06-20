@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>桃園マネージャー</title>
+<meta name="theme-color" content="#FAF4EF" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="桃園マネージャー" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23E0795F'/%3E%3Ccircle cx='50' cy='55' r='25' fill='%23F8E0D4'/%3E%3Cpath d='M50 30 q6 -10 14 -6' stroke='%234E7A5A' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23E0795F'/%3E%3Ccircle cx='50' cy='55' r='25' fill='%23F8E0D4'/%3E%3Cpath d='M50 30 q6 -10 14 -6' stroke='%234E7A5A' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>html,body{margin:0;padding:0;background:#FAF4EF;}#root{min-height:100vh;}#boot{display:grid;place-items:center;height:100vh;color:#7A6E64;font-family:system-ui,sans-serif;font-size:14px;text-align:center;padding:24px;}</style>
+<script>
+window.addEventListener('error', function (e) {
+  var t = e && e.target;
+  if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+    var r = document.getElementById('root');
+    if (r) r.innerHTML = '<div style="padding:28px;font-family:system-ui;color:#C75B43;font-size:14px;line-height:1.7">読み込みに必要なファイルを取得できませんでした。<br>通信環境を変えて、ページを再読み込みしてください。</div>';
+  }
+}, true);
+</script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.292.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div id="root"><div id="boot">桃園マネージャーを準備しています…</div></div>
+<script>
+try {
+"use strict";
+// @ts-nocheck
+const { useState, useEffect, useMemo, useRef } = React;
+function Icon({ n, size = 24, ...rest }) {
+    let node = null;
+    try {
+        node = window.lucide && window.lucide.icons && window.lucide.icons[n];
+    }
+    catch (e) { }
+    const base = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", ...rest };
+    if (!Array.isArray(node))
+        return React.createElement("svg", base, React.createElement("circle", { cx: 12, cy: 12, r: 8 }));
+    const kids = node.map((e, i) => React.createElement(e[0], { ...(e[1] || {}), key: i }));
+    return React.createElement("svg", base, kids);
+}
+const mkI = (n) => (props) => React.createElement(Icon, { n, ...props });
+const Home = mkI("Home"), Leaf = mkI("Leaf"), ShoppingBag = mkI("ShoppingBag"), Users = mkI("Users"), Plus = mkI("Plus"), X = mkI("X"), TrendingUp = mkI("TrendingUp"), TrendingDown = mkI("TrendingDown"), Check = mkI("Check"), Clock = mkI("Clock"), MapPin = mkI("MapPin"), Droplets = mkI("Droplets"), Scissors = mkI("Scissors"), Package = mkI("Package"), Bug = mkI("Bug"), Sprout = mkI("Sprout"), Gift = mkI("Gift"), Landmark = mkI("Landmark"), Store = mkI("Store"), Trash2 = mkI("Trash2"), RotateCcw = mkI("RotateCcw"), Settings = mkI("Settings"), ChevronRight = mkI("ChevronRight"), CalendarClock = mkI("CalendarClock"), Wrench = mkI("Wrench"), BadgeCheck = mkI("BadgeCheck"), ArrowRightLeft = mkI("ArrowRightLeft"), BarChart3 = mkI("BarChart3"), Download = mkI("Download"), Upload = mkI("Upload"), CalendarDays = mkI("CalendarDays"), Receipt = mkI("Receipt");
+window.storage = {
+    get: async (k) => { try {
+        const v = localStorage.getItem(k);
+        return v == null ? null : { value: v };
+    }
+    catch (e) {
+        return null;
+    } },
+    set: async (k, v) => { try {
+        localStorage.setItem(k, v);
+    }
+    catch (e) { } },
+};
+function emptyData() {
+    return { settings: { target: 19000000, farm: "わたしの桃園" }, customers: [], sales: [], works: [], reservations: [] };
+}
+/* ───────────────────────── design tokens ───────────────────────── */
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+:root{
+  --paper:#FAF4EF; --card:#FFFFFF; --ink:#2B211C; --soft:#7A6E64;
+  --line:#EFE3DA; --peach:#E0795F; --peach-deep:#C75B43; --peach-pale:#F8E0D4;
+  --leaf:#4E7A5A; --leaf-pale:#E6EFE6; --gold:#E0A458; --sky:#5B8DB8;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+.pf-root{font-family:'Noto Sans JP',system-ui,sans-serif; color:var(--ink);
+  background:var(--paper); min-height:100vh; max-width:480px; margin:0 auto;
+  position:relative; padding-bottom:96px; overflow-x:hidden;}
+.pf-disp{font-family:'Zen Maru Gothic','Noto Sans JP',sans-serif;}
+.pf-num{font-family:'Zen Maru Gothic',sans-serif; font-weight:900; letter-spacing:-.01em;}
+
+.pf-head{position:sticky; top:0; z-index:30; background:rgba(250,244,239,.86);
+  backdrop-filter:blur(10px); padding:18px 20px 12px; border-bottom:1px solid var(--line);}
+.pf-head-row{display:flex; align-items:center; justify-content:space-between;}
+.pf-brand{display:flex; align-items:center; gap:10px;}
+.pf-mark{width:34px; height:34px; border-radius:11px; display:grid; place-items:center;
+  background:var(--peach); color:#fff; box-shadow:0 4px 12px rgba(224,121,95,.35);}
+.pf-title{font-weight:700; font-size:18px; line-height:1.1;}
+.pf-sub{font-size:11px; color:var(--soft); margin-top:1px;}
+.pf-icon-btn{width:38px; height:38px; border-radius:11px; border:1px solid var(--line);
+  background:var(--card); display:grid; place-items:center; color:var(--soft); cursor:pointer;}
+
+.pf-season{margin:14px 0 2px; display:flex; gap:5px;}
+.pf-seg{flex:1; text-align:center;}
+.pf-seg-bar{height:7px; border-radius:6px; background:var(--line); transition:background .3s;}
+.pf-seg.on .pf-seg-bar{background:var(--peach);}
+.pf-seg.done .pf-seg-bar{background:var(--peach-pale);}
+.pf-seg-lab{font-size:9.5px; color:var(--soft); margin-top:5px; line-height:1.2;}
+.pf-seg.on .pf-seg-lab{color:var(--peach-deep); font-weight:700;}
+
+.pf-body{padding:18px 16px 0;}
+.pf-card{background:var(--card); border:1px solid var(--line); border-radius:18px;
+  padding:18px; box-shadow:0 1px 2px rgba(43,33,28,.04);}
+.pf-card + .pf-card{margin-top:14px;}
+.pf-eyebrow{font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--soft);
+  text-transform:uppercase; display:flex; align-items:center; gap:6px;}
+.pf-sectitle{font-size:15px; font-weight:700; margin:22px 4px 10px; display:flex;
+  align-items:center; justify-content:space-between;}
+
+.pf-hero-big{font-size:40px; line-height:1; margin:10px 0 2px;}
+.pf-hero-cap{font-size:12px; color:var(--soft);}
+.pf-prog{height:10px; border-radius:8px; background:var(--leaf-pale); overflow:hidden; margin-top:14px;}
+.pf-prog-fill{height:100%; border-radius:8px; background:linear-gradient(90deg,var(--peach),var(--peach-deep));}
+.pf-prog-row{display:flex; justify-content:space-between; font-size:11.5px; color:var(--soft); margin-top:7px;}
+
+.pf-kpis{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
+.pf-kpi{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px;}
+.pf-kpi-v{font-size:23px; margin-top:6px;}
+.pf-kpi-l{font-size:11px; color:var(--soft); display:flex; align-items:center; gap:5px;}
+
+.pf-mixbar{height:14px; border-radius:8px; overflow:hidden; display:flex; margin:14px 0 14px;}
+.pf-mix-seg{height:100%;}
+.pf-legend{display:flex; flex-direction:column; gap:11px;}
+.pf-leg{display:flex; align-items:center; gap:10px; font-size:13px;}
+.pf-dot{width:10px; height:10px; border-radius:50%; flex:none;}
+.pf-leg-amt{margin-left:auto; font-weight:700; font-size:13px;}
+.pf-leg-sub{font-size:10.5px; color:var(--soft);}
+
+.pf-row{display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);}
+.pf-row:last-child{border-bottom:none;}
+.pf-row-ic{width:38px; height:38px; border-radius:11px; display:grid; place-items:center; flex:none;}
+.pf-row-main{flex:1; min-width:0;}
+.pf-row-tap{flex:1; min-width:0; text-align:left; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; color:inherit;}
+.pf-row-t{font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.pf-row-s{font-size:11.5px; color:var(--soft); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.pf-row-r{text-align:right; flex:none;}
+.pf-row-amt{font-weight:700; font-size:14px;}
+.pf-tag{font-size:10px; padding:2px 7px; border-radius:20px; font-weight:700; display:inline-block;}
+.pf-del{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#C0897B;background:var(--peach-pale);border:none;cursor:pointer;flex:none;}
+.pf-mini{font-size:11px; font-weight:700; border:none; padding:4px 9px; border-radius:9px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;}
+.pf-mini.paid{background:var(--leaf-pale); color:var(--leaf);}
+.pf-mini.due{background:var(--peach-pale); color:var(--peach-deep);}
+.pf-mini.calc{background:var(--ink); color:#fff;}
+
+.pf-chips{display:flex; flex-wrap:wrap; gap:8px;}
+.pf-chip{padding:9px 13px; border-radius:12px; border:1px solid var(--line); background:var(--card);
+  font-size:13px; cursor:pointer; color:var(--ink);}
+.pf-chip.sel{background:var(--ink); color:#fff; border-color:var(--ink);}
+.pf-chip.sm{padding:6px 11px; font-size:12px;}
+
+.pf-btn{width:100%; padding:15px; border-radius:14px; border:none; background:var(--peach);
+  color:#fff; font-size:15px; font-weight:700; cursor:pointer; font-family:'Zen Maru Gothic',sans-serif;
+  box-shadow:0 6px 16px rgba(224,121,95,.32);}
+.pf-btn.ghost{background:var(--card); color:var(--ink); border:1px solid var(--line); box-shadow:none;}
+.pf-addbtn{display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--peach-deep);
+  background:var(--peach-pale); border:none; padding:8px 13px; border-radius:11px; cursor:pointer;}
+
+.pf-nav{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+  background:rgba(255,255,255,.92); backdrop-filter:blur(12px); border-top:1px solid var(--line);
+  display:flex; padding:8px 4px calc(8px + env(safe-area-inset-bottom)); z-index:40;}
+.pf-tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 0;
+  background:none; border:none; color:var(--soft); cursor:pointer; font-size:10px; font-weight:600;}
+.pf-tab.on{color:var(--peach-deep);}
+.pf-tab.on .pf-tabic{background:var(--peach-pale);}
+.pf-tabic{width:44px; height:30px; border-radius:14px; display:grid; place-items:center; transition:background .2s;}
+
+.pf-scrim{position:fixed; inset:0; background:rgba(43,33,28,.4); z-index:50; animation:fade .2s ease;}
+.pf-sheet{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+  background:var(--paper); border-radius:24px 24px 0 0; z-index:51; padding:8px 20px 28px;
+  max-height:90vh; overflow-y:auto; animation:slideup .26s cubic-bezier(.2,.8,.2,1);}
+.pf-grip{width:40px; height:4px; border-radius:4px; background:var(--line); margin:8px auto 14px;}
+.pf-sheet-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+.pf-sheet-h h3{font-size:18px; font-weight:700;}
+.pf-field{margin-bottom:16px;}
+.pf-label{font-size:12px; font-weight:700; color:var(--soft); margin-bottom:7px; display:block;}
+.pf-input{width:100%; padding:13px 14px; border-radius:12px; border:1px solid var(--line);
+  background:var(--card); font-size:15px; color:var(--ink); font-family:inherit;}
+.pf-input:focus{outline:2px solid var(--peach); outline-offset:1px;}
+.pf-two{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+.pf-empty{text-align:center; padding:34px 16px; color:var(--soft);}
+.pf-empty-ic{width:54px;height:54px;border-radius:16px;background:var(--peach-pale);
+  display:grid;place-items:center;margin:0 auto 12px;color:var(--peach);}
+.pf-empty h4{font-size:15px;color:var(--ink);font-weight:700;margin-bottom:5px;}
+.pf-empty p{font-size:12.5px;line-height:1.6;}
+
+.pf-toggle{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer;
+  padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--card);}
+.pf-toggle.on{border-color:var(--leaf);background:var(--leaf-pale);color:var(--leaf);font-weight:700;}
+.pf-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:none;
+  display:grid;place-items:center;}
+.pf-toggle.on .pf-check{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+
+.pf-confirm{position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:30px;
+  background:rgba(43,33,28,.4); animation:fade .15s ease;}
+.pf-confirm-box{background:var(--card); border-radius:20px; padding:22px; max-width:330px; width:100%;
+  box-shadow:0 20px 50px rgba(43,33,28,.3);}
+.pf-confirm-msg{font-size:14px; line-height:1.65; margin-bottom:18px;}
+.pf-confirm-row{display:flex; gap:10px;}
+.pf-confirm-row button{flex:1; padding:12px; border-radius:12px; font-weight:700; font-size:14px;
+  cursor:pointer; font-family:'Zen Maru Gothic',sans-serif; border:none;}
+.pf-cancel{background:var(--card)!important; border:1px solid var(--line)!important; color:var(--ink);}
+.pf-danger{background:var(--peach); color:#fff;}
+
+/* charts */
+.pf-delta{font-size:12px; font-weight:700; padding:2px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:3px; vertical-align:middle;}
+.pf-delta.up{background:var(--leaf-pale); color:var(--leaf);}
+.pf-delta.down{background:var(--peach-pale); color:var(--peach-deep);}
+.pf-delta.flat{background:var(--line); color:var(--soft);}
+
+.pf-readout{background:var(--peach-pale); border-radius:14px; padding:13px 15px; margin:12px 0 6px;}
+.pf-readout-lab{font-size:12px; font-weight:700; color:var(--peach-deep); display:flex; align-items:center; gap:6px;}
+.pf-readout-big{font-size:30px; color:var(--ink); margin:4px 0 3px;}
+.pf-readout-sub{font-size:12.5px; color:#9a6a5b;}
+.pf-chbreak{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+.pf-chbreak .pf-leg{font-size:12.5px;}
+
+.pf-clegend{display:flex; flex-wrap:wrap; gap:14px; margin:10px 0 4px; font-size:11.5px; color:var(--soft);}
+.pf-clegend span{display:inline-flex; align-items:center; gap:6px;}
+.pf-sw{width:11px; height:11px; border-radius:3px;}
+
+.pf-chart{display:flex; align-items:flex-end; gap:6px; height:138px; padding-top:6px;}
+.pf-mcol{flex:1; display:flex; flex-direction:column; align-items:center; height:100%;
+  background:none; border:none; cursor:pointer; padding:0; font-family:inherit;}
+.pf-mval{font-size:9px; height:13px; line-height:13px; color:var(--soft); white-space:nowrap;}
+.pf-mval.on{color:var(--peach-deep); font-weight:700;}
+.pf-mbars{flex:1; display:flex; align-items:flex-end; gap:3px; width:100%; justify-content:center;}
+.pf-bar{width:11px; border-radius:3px 3px 0 0; min-height:1px; transition:height .3s;}
+.pf-bar.prev{background:var(--peach-pale);}
+.pf-bar.cur{background:var(--peach);}
+.pf-bar.cur.sel{outline:2.5px solid var(--peach-deep); outline-offset:1px;}
+.pf-stack{width:22px; border-radius:4px 4px 0 0; overflow:hidden; display:flex; flex-direction:column; min-height:2px;}
+.pf-stack.sel{outline:2.5px solid var(--ink); outline-offset:2px;}
+.pf-sseg{width:100%;}
+.pf-mlab{font-size:10px; color:var(--soft); margin-top:6px;}
+.pf-mlab.on{color:var(--peach-deep); font-weight:700;}
+.pf-hint{font-size:11px; color:var(--soft); margin-top:10px; text-align:center;}
+.pf-foot{font-size:12px; color:var(--soft); margin-top:12px; padding-top:12px; border-top:1px solid var(--line); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;}
+
+.pf-ychart{display:flex; align-items:flex-end; gap:14px; height:170px; padding:8px 4px 0;}
+.pf-ycol{flex:1; display:flex; flex-direction:column; align-items:center; height:100%;}
+.pf-yval{font-size:10.5px; font-weight:700; margin-bottom:6px; color:var(--ink);}
+.pf-ywrap{flex:1; display:flex; align-items:flex-end; width:100%; justify-content:center;}
+.pf-ybar{width:64%; max-width:64px; border-radius:9px 9px 0 0; background:var(--peach-pale); min-height:3px; transition:height .3s; overflow:hidden; display:flex; flex-direction:column;}
+.pf-ybar.last{background:var(--peach);}
+.pf-ybar.stacked{background:transparent;}
+.pf-ylab{font-size:12px; color:var(--soft); margin-top:7px; font-weight:700;}
+.pf-ylab.last{color:var(--peach-deep);}
+
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slideup{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.pf-scrim,.pf-sheet,.pf-confirm,.pf-bar,.pf-ybar{animation:none;transition:none;}}
+`;
+/* ───────────────────────── constants ───────────────────────── */
+const CHANNELS = [
+    { key: "ec", label: "EC直販", color: "#E0795F", icon: ShoppingBag },
+    { key: "gift", label: "贈答", color: "#C9607A", icon: Gift },
+    { key: "furusato", label: "ふるさと納税", color: "#4E7A5A", icon: Landmark },
+    { key: "chokubai", label: "直売所", color: "#E0A458", icon: Store },
+    { key: "kako", label: "加工品", color: "#8E6B9E", icon: Package },
+];
+const ch = (k) => CHANNELS.find((c) => c.key === k) || CHANNELS[0];
+const WORKS = [
+    { key: "tekika", label: "摘果", color: "#4E7A5A", icon: Scissors },
+    { key: "tekirai", label: "摘蕾", color: "#4E7A5A", icon: Scissors },
+    { key: "fukurokake", label: "袋掛け", color: "#E0A458", icon: Package },
+    { key: "bojo", label: "防除", color: "#8E6B9E", icon: Bug },
+    { key: "kanju", label: "収穫", color: "#E0795F", icon: Sprout },
+    { key: "kansui", label: "灌水", color: "#5B8DB8", icon: Droplets },
+    { key: "sentei", label: "剪定", color: "#7A6E64", icon: Scissors },
+    { key: "other", label: "その他", color: "#7A6E64", icon: Wrench },
+];
+const wk = (k) => WORKS.find((w) => w.key === k) || WORKS[7];
+const BLOCKS = ["東の畑", "西の畑", "川沿い", "ジョイント試験区"];
+const VARIETIES = ["日川白鳳", "白鳳", "浅間白桃", "川中島白桃", "—"];
+const SEASONS = [
+    { lab: "剪定", months: [12, 1, 2] }, { lab: "開花", months: [3] },
+    { lab: "摘果", months: [4, 5] }, { lab: "袋掛け", months: [6] },
+    { lab: "収穫", months: [7, 8] }, { lab: "土づくり", months: [9, 10, 11] },
+];
+const STORE_KEY = "peachfarm:v3";
+/* ───────────────────────── helpers ───────────────────────── */
+const yen = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
+const man = (n) => (n / 10000).toLocaleString("ja-JP", { maximumFractionDigits: n >= 100000 ? 0 : 1 }) + "万円";
+const compact = (n) => { if (!n)
+    return ""; const m = n / 10000; return (m >= 10 ? Math.round(m) : m.toFixed(1)) + "万"; };
+const today = () => new Date().toISOString().slice(0, 10);
+const md = (d) => { if (!d)
+    return "—"; const [, m, day] = d.split("-"); return `${+m}/${+day}`; };
+const yr = (d) => +d.slice(0, 4);
+const mo = (d) => +d.slice(5, 7);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const monthTotals = (sales, y) => { const a = Array(12).fill(0); sales.forEach((s) => { if (yr(s.date) === y)
+    a[mo(s.date) - 1] += s.amount; }); return a; };
+const monthChannel = (sales, y) => { const a = Array.from({ length: 12 }, () => ({})); sales.forEach((s) => { if (yr(s.date) === y) {
+    const i = mo(s.date) - 1;
+    a[i][s.channel] = (a[i][s.channel] || 0) + s.amount;
+} }); return a; };
+/* ───────────────────────── seed data ───────────────────────── */
+function seed() {
+    const C = (name, channel, contact, rebook) => ({ id: uid(), name, channel, contact, rebook });
+    const cs = [
+        C("高橋様", "gift", "毎年お中元で2箱", true),
+        C("鈴木様", "ec", "旬の定期便（桃→ぶどう）", true),
+        C("佐藤様", "ec", "LINE登録済み", true),
+        C("山本様", "gift", "今季初・要フォロー", false),
+        C("田中様", "ec", "マルシェから流入", false),
+        C("渡辺様", "gift", "来年も予約済み", true),
+        C("中村様", "ec", "浅間白桃を希望", false),
+        C("小林様", "gift", "晩生（川中島）を希望", false),
+    ];
+    const giftCust = [0, 3, 5], ecCust = [1, 2, 4, 6];
+    const varietyFor = (m) => (m <= 6 ? "日川白鳳" : m === 7 ? "白鳳" : m === 8 ? "浅間白桃" : "川中島白桃");
+    const pattern = [
+        { m: 6, o: [["chokubai", 50, 40000, null], ["ec", 2, 6000, "e"]] },
+        { m: 7, o: [["gift", 3, 8800, "g"], ["ec", 4, 9600, "e"], ["furusato", 40, 60000, null], ["chokubai", 55, 45000, null], ["gift", 3, 8400, "g"], ["ec", 2, 5200, "e"]] },
+        { m: 8, o: [["gift", 4, 12000, "g"], ["ec", 4, 9600, "e"], ["furusato", 38, 56000, null], ["chokubai", 60, 50000, null], ["kako", 0, 30000, null]] },
+        { m: 9, o: [["ec", 3, 7200, "e"], ["chokubai", 45, 38000, null], ["gift", 3, 8800, "g"]] },
+        { m: 10, o: [["kako", 0, 24000, null]] },
+    ];
+    let gi = 0, ei = 0;
+    const makeSeason = (year, factor) => {
+        const out = [];
+        pattern.forEach(({ m, o }) => {
+            o.forEach((ord, idx) => {
+                const [channel, kg, amt, ctype] = ord;
+                let customerId = null, label = "";
+                if (ctype === "g") {
+                    const ci = giftCust[gi++ % giftCust.length];
+                    customerId = cs[ci].id;
+                    label = cs[ci].name;
+                }
+                else if (ctype === "e") {
+                    const ci = ecCust[ei++ % ecCust.length];
+                    customerId = cs[ci].id;
+                    label = cs[ci].name;
+                }
+                out.push({
+                    id: uid(), date: `${year}-${String(m).padStart(2, "0")}-${String(5 + idx * 4).padStart(2, "0")}`,
+                    channel, customerId, label, variety: channel === "kako" ? "—" : varietyFor(m),
+                    kg, amount: Math.round(amt * factor / 100) * 100,
+                });
+            });
+        });
+        return out;
+    };
+    const sales = [...makeSeason(2024, 0.9), ...makeSeason(2025, 1.0), ...makeSeason(2026, 1.15)];
+    const curTotal = sales.filter((s) => yr(s.date) === 2026).reduce((a, s) => a + s.amount, 0);
+    const target = Math.round(curTotal / 0.4 / 100000) * 100000;
+    const id = (n) => cs[n].id;
+    return {
+        settings: { target, farm: "南アルプス桃園" },
+        customers: cs,
+        sales,
+        works: [
+            { id: uid(), date: "2026-06-20", type: "fukurokake", block: "東の畑", hours: 4, kg: 0, agent: "", note: "白鳳の仕上げ袋掛け" },
+            { id: uid(), date: "2026-06-18", type: "bojo", block: "全圃場", hours: 2, kg: 0, agent: "殺菌剤A・展着剤", note: "ドローン防除" },
+            { id: uid(), date: "2026-06-15", type: "tekika", block: "川沿い", hours: 5, kg: 0, agent: "", note: "仕上げ摘果" },
+            { id: uid(), date: "2026-06-12", type: "kansui", block: "ジョイント試験区", hours: 0, kg: 0, agent: "", note: "自動灌水・センサー確認" },
+            { id: uid(), date: "2026-07-10", type: "kanju", block: "東の畑", hours: 6, kg: 120, agent: "", note: "日川白鳳 初収穫" },
+        ],
+        reservations: [
+            { id: uid(), customerId: id(1), label: "鈴木様", channel: "ec", variety: "白鳳", kg: 4, amount: 9600, paid: true, deliveryDate: "2026-07-28", note: "定期便" },
+            { id: uid(), customerId: id(0), label: "高橋様", channel: "gift", variety: "白鳳", kg: 6, amount: 17600, paid: true, deliveryDate: "2026-07-20", note: "お中元 2箱" },
+            { id: uid(), customerId: id(6), label: "中村様", channel: "ec", variety: "浅間白桃", kg: 3, amount: 7200, paid: false, deliveryDate: "2026-08-05", note: "" },
+            { id: uid(), customerId: id(7), label: "小林様", channel: "gift", variety: "川中島白桃", kg: 5, amount: 12000, paid: false, deliveryDate: "2026-08-25", note: "晩生" },
+        ],
+    };
+}
+/* ───────────────────────── app ───────────────────────── */
+function App() {
+    const [data, setData] = useState(null);
+    const [tab, setTab] = useState("home");
+    const [sheet, setSheet] = useState(null);
+    const [confirm, setConfirm] = useState(null);
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await window.storage.get(STORE_KEY);
+                setData(r && r.value ? JSON.parse(r.value) : emptyData());
+            }
+            catch {
+                const s = emptyData();
+                try {
+                    const p = window.storage.set(STORE_KEY, JSON.stringify(s), false);
+                    if (p && p.catch)
+                        p.catch(() => { });
+                }
+                catch { }
+                setData(s);
+            }
+        })();
+    }, []);
+    const persist = (d) => { try {
+        const p = window.storage.set(STORE_KEY, JSON.stringify(d), false);
+        if (p && p.catch)
+            p.catch(() => { });
+    }
+    catch { } };
+    const update = (fn) => setData((prev) => { const next = fn(prev); persist(next); return next; });
+    const ask = (msg, onYes) => setConfirm({ msg, onYes });
+    if (!data) {
+        return (React.createElement("div", { className: "pf-root", style: { display: "grid", placeItems: "center", height: "100vh" } },
+            React.createElement("style", null, CSS),
+            React.createElement("div", { style: { color: "var(--soft)" }, className: "pf-disp" }, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026")));
+    }
+    const month = new Date().getMonth() + 1;
+    const curSeason = SEASONS.findIndex((s) => s.months.includes(month));
+    return (React.createElement("div", { className: "pf-root" },
+        React.createElement("style", null, CSS),
+        React.createElement("header", { className: "pf-head" },
+            React.createElement("div", { className: "pf-head-row" },
+                React.createElement("div", { className: "pf-brand" },
+                    React.createElement("div", { className: "pf-mark" },
+                        React.createElement(Sprout, { size: 19 })),
+                    React.createElement("div", null,
+                        React.createElement("div", { className: "pf-title pf-disp" }, data.settings.farm),
+                        React.createElement("div", { className: "pf-sub" },
+                            React.createElement(MapPin, { size: 10, style: { verticalAlign: "-1px" } }),
+                            " \u5C71\u68A8\u770C\u5357\u30A2\u30EB\u30D7\u30B9\u5E02"))),
+                React.createElement("button", { className: "pf-icon-btn", onClick: () => setSheet("settings"), "aria-label": "\u8A2D\u5B9A" },
+                    React.createElement(Settings, { size: 18 }))),
+            React.createElement("div", { className: "pf-season" }, SEASONS.map((s, i) => (React.createElement("div", { key: s.lab, className: `pf-seg ${i === curSeason ? "on" : i < curSeason ? "done" : ""}` },
+                React.createElement("div", { className: "pf-seg-bar" }),
+                React.createElement("div", { className: "pf-seg-lab" }, s.lab)))))),
+        React.createElement("main", { className: "pf-body" },
+            tab === "home" && React.createElement(HomeView, { data: data, curSeason: curSeason, setTab: setTab }),
+            tab === "prod" && React.createElement(ProdView, { data: data, update: update, setSheet: setSheet, ask: ask }),
+            tab === "sales" && React.createElement(SalesView, { data: data, update: update, setSheet: setSheet, ask: ask }),
+            tab === "trend" && React.createElement(TrendView, { data: data }),
+            tab === "cust" && React.createElement(CustView, { data: data, update: update, setSheet: setSheet, ask: ask })),
+        React.createElement("nav", { className: "pf-nav" }, [
+            { k: "home", l: "ホーム", I: Home }, { k: "prod", l: "生産", I: Leaf },
+            { k: "sales", l: "販売", I: ShoppingBag }, { k: "trend", l: "推移", I: BarChart3 },
+            { k: "cust", l: "顧客", I: Users },
+        ].map(({ k, l, I }) => (React.createElement("button", { key: k, className: `pf-tab ${tab === k ? "on" : ""}`, onClick: () => setTab(k) },
+            React.createElement("span", { className: "pf-tabic" },
+                React.createElement(I, { size: 20 })),
+            l)))),
+        sheet === "sale" && React.createElement(SaleSheet, { customers: data.customers, onClose: () => setSheet(null), update: update }),
+        sheet === "work" && React.createElement(WorkSheet, { onClose: () => setSheet(null), update: update }),
+        sheet === "customer" && React.createElement(CustomerSheet, { onClose: () => setSheet(null), update: update }),
+        sheet === "reservation" && React.createElement(ResvSheet, { customers: data.customers, onClose: () => setSheet(null), update: update }),
+        sheet === "settings" && React.createElement(SettingsSheet, { data: data, onClose: () => setSheet(null), update: update, ask: ask }),
+        confirm && (React.createElement("div", { className: "pf-confirm", onClick: () => setConfirm(null) },
+            React.createElement("div", { className: "pf-confirm-box", onClick: (e) => e.stopPropagation() },
+                React.createElement("div", { className: "pf-confirm-msg" }, confirm.msg),
+                React.createElement("div", { className: "pf-confirm-row" },
+                    React.createElement("button", { className: "pf-cancel", onClick: () => setConfirm(null) }, "\u3084\u3081\u308B"),
+                    React.createElement("button", { className: "pf-danger", onClick: () => { confirm.onYes(); setConfirm(null); } }, "\u5B9F\u884C\u3059\u308B")))))));
+}
+/* ───────────────────────── HOME ───────────────────────── */
+function HomeView({ data, curSeason, setTab }) {
+    const { sales, reservations, works, settings } = data;
+    const curYear = useMemo(() => Math.max(...sales.map((s) => yr(s.date)), new Date().getFullYear()), [sales]);
+    const ySales = sales.filter((s) => yr(s.date) === curYear);
+    const revenue = ySales.reduce((a, s) => a + s.amount, 0);
+    const totalKg = ySales.reduce((a, s) => a + (s.kg || 0), 0);
+    const fresh = ySales.filter((s) => (s.kg || 0) > 0);
+    const avgPrice = fresh.reduce((a, s) => a + s.kg, 0) ? fresh.reduce((a, s) => a + s.amount, 0) / fresh.reduce((a, s) => a + s.kg, 0) : 0;
+    const pct = Math.min(100, (revenue / settings.target) * 100);
+    const resvUnpaid = reservations.filter((r) => !r.paid).length;
+    const resvAmt = reservations.reduce((a, r) => a + r.amount, 0);
+    const harvestKg = works.filter((w) => w.type === "kanju").reduce((a, w) => a + (w.kg || 0), 0);
+    const byCh = CHANNELS.map((c) => ({ ...c, amt: ySales.filter((s) => s.channel === c.key).reduce((a, s) => a + s.amount, 0) }))
+        .filter((c) => c.amt > 0).sort((a, b) => b.amt - a.amt);
+    const recent = [...works].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-card" },
+            React.createElement("div", { className: "pf-eyebrow" },
+                React.createElement(TrendingUp, { size: 13 }),
+                " ",
+                curYear,
+                "\u5E74\u306E\u58F2\u4E0A"),
+            React.createElement("div", { className: "pf-hero-big pf-num", style: { color: "var(--peach-deep)" } }, man(revenue)),
+            React.createElement("div", { className: "pf-hero-cap" },
+                "\u76EE\u6A19 ",
+                man(settings.target),
+                " \u306B\u5BFE\u3057\u3066 ",
+                pct.toFixed(0),
+                "%"),
+            React.createElement("div", { className: "pf-prog" },
+                React.createElement("div", { className: "pf-prog-fill", style: { width: `${pct}%` } })),
+            React.createElement("div", { className: "pf-prog-row" },
+                React.createElement("span", null,
+                    "\u9054\u6210 ",
+                    pct.toFixed(0),
+                    "%"),
+                React.createElement("span", null,
+                    "\u6B8B\u308A ",
+                    man(Math.max(0, settings.target - revenue))))),
+        React.createElement("div", { className: "pf-kpis" },
+            React.createElement("div", { className: "pf-kpi" },
+                React.createElement("div", { className: "pf-kpi-l" },
+                    React.createElement(Sprout, { size: 12 }),
+                    " \u52A0\u91CD\u5358\u4FA1\uFF08\u751F\u679C\uFF09"),
+                React.createElement("div", { className: "pf-kpi-v pf-num" },
+                    avgPrice ? yen(avgPrice) : "—",
+                    React.createElement("span", { style: { fontSize: 12, color: "var(--soft)" } }, " /kg"))),
+            React.createElement("div", { className: "pf-kpi" },
+                React.createElement("div", { className: "pf-kpi-l" },
+                    React.createElement(Package, { size: 12 }),
+                    " \u51FA\u8377\u91CF"),
+                React.createElement("div", { className: "pf-kpi-v pf-num" },
+                    totalKg,
+                    React.createElement("span", { style: { fontSize: 12, color: "var(--soft)" } }, " kg"))),
+            React.createElement("div", { className: "pf-kpi" },
+                React.createElement("div", { className: "pf-kpi-l" },
+                    React.createElement(Leaf, { size: 12 }),
+                    " \u53CE\u7A6B\u91CF"),
+                React.createElement("div", { className: "pf-kpi-v pf-num" },
+                    harvestKg,
+                    React.createElement("span", { style: { fontSize: 12, color: "var(--soft)" } }, " kg"))),
+            React.createElement("div", { className: "pf-kpi" },
+                React.createElement("div", { className: "pf-kpi-l" },
+                    React.createElement(CalendarClock, { size: 12 }),
+                    " \u5148\u884C\u4E88\u7D04"),
+                React.createElement("div", { className: "pf-kpi-v pf-num" }, man(resvAmt)),
+                React.createElement("div", { className: "pf-leg-sub", style: { marginTop: 2 } },
+                    "\u672A\u5165\u91D1 ",
+                    resvUnpaid,
+                    "\u4EF6"))),
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u30C1\u30E3\u30CD\u30EB\u5225\u306E\u58F2\u4E0A"),
+            React.createElement("button", { className: "pf-addbtn", style: { background: "transparent", color: "var(--soft)" }, onClick: () => setTab("trend") },
+                "\u63A8\u79FB\u3092\u898B\u308B",
+                React.createElement(ChevronRight, { size: 14 }))),
+        React.createElement("div", { className: "pf-card" }, byCh.length === 0 ? React.createElement("div", { style: { color: "var(--soft)", fontSize: 13 } }, "\u307E\u3060\u58F2\u4E0A\u304C\u3042\u308A\u307E\u305B\u3093\u3002") : React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "pf-mixbar" }, byCh.map((c) => React.createElement("div", { key: c.key, className: "pf-mix-seg", style: { width: `${(c.amt / revenue) * 100}%`, background: c.color } }))),
+            React.createElement("div", { className: "pf-legend" }, byCh.map((c) => (React.createElement("div", { key: c.key, className: "pf-leg" },
+                React.createElement("span", { className: "pf-dot", style: { background: c.color } }),
+                React.createElement("span", null, c.label),
+                React.createElement("span", { className: "pf-leg-amt" }, man(c.amt)),
+                React.createElement("span", { className: "pf-leg-sub", style: { marginLeft: 8 } },
+                    ((c.amt / revenue) * 100).toFixed(0),
+                    "%"))))))),
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u6700\u8FD1\u306E\u4F5C\u696D"),
+            React.createElement("button", { className: "pf-addbtn", style: { background: "transparent", color: "var(--soft)" }, onClick: () => setTab("prod") },
+                "\u3059\u3079\u3066",
+                React.createElement(ChevronRight, { size: 14 }))),
+        React.createElement("div", { className: "pf-card", style: { paddingTop: 4, paddingBottom: 4 } }, recent.map((w) => {
+            const W = wk(w.type);
+            const I = W.icon;
+            return (React.createElement("div", { key: w.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: W.color + "1a", color: W.color } },
+                    React.createElement(I, { size: 18 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" },
+                        W.label,
+                        "\u30FB",
+                        w.block),
+                    React.createElement("div", { className: "pf-row-s" }, w.note || "—")),
+                React.createElement("div", { className: "pf-row-r" },
+                    React.createElement("div", { className: "pf-row-s" }, md(w.date)))));
+        })),
+        React.createElement("p", { style: { textAlign: "center", fontSize: 11, color: "var(--soft)", margin: "20px 8px 4px", lineHeight: 1.6 } },
+            curSeason >= 0 ? `今は「${SEASONS[curSeason].lab}」期。` : "",
+            "\u8A18\u9332\u306F\u3053\u306E\u7AEF\u672B\u306B\u4FDD\u5B58\u3055\u308C\u307E\u3059\uFF08\u8A2D\u5B9A\u304B\u3089\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u53EF\u80FD\uFF09\u3002")));
+}
+/* ───────────────────────── TREND (analytics) ───────────────────────── */
+function Delta({ v }) {
+    if (v == null)
+        return React.createElement("span", { className: "pf-delta flat" }, "\u524D\u5E74\u306A\u3057");
+    const up = v >= 0;
+    return React.createElement("span", { className: `pf-delta ${up ? "up" : "down"}` },
+        up ? React.createElement(TrendingUp, { size: 12 }) : React.createElement(TrendingDown, { size: 12 }),
+        "\u524D\u5E74\u6BD4 ",
+        up ? "+" : "",
+        v.toFixed(0),
+        "%");
+}
+function ModeToggle({ mode, setMode }) {
+    return (React.createElement("div", { className: "pf-chips", style: { margin: "10px 0 2px" } },
+        React.createElement("button", { className: `pf-chip sm ${mode === "total" ? "sel" : ""}`, onClick: () => setMode("total") }, "\u5408\u8A08\uFF08\u524D\u5E74\u6BD4\u8F03\uFF09"),
+        React.createElement("button", { className: `pf-chip sm ${mode === "channel" ? "sel" : ""}`, onClick: () => setMode("channel") }, "\u30C1\u30E3\u30CD\u30EB\u5225\uFF08\u7A4D\u307F\u4E0A\u3052\uFF09")));
+}
+function MonthlyChart({ sales }) {
+    const years = useMemo(() => [...new Set(sales.map((s) => yr(s.date)))].sort((a, b) => a - b), [sales]);
+    const [year, setYear] = useState(years[years.length - 1]);
+    const [mode, setMode] = useState("total");
+    const cur = useMemo(() => monthTotals(sales, year), [sales, year]);
+    const prev = useMemo(() => monthTotals(sales, year - 1), [sales, year]);
+    const curCh = useMemo(() => monthChannel(sales, year), [sales, year]);
+    const active = useMemo(() => {
+        const a = [];
+        for (let i = 0; i < 12; i++)
+            if (cur[i] > 0 || prev[i] > 0)
+                a.push(i);
+        return a.length ? a : [5, 6, 7, 8, 9];
+    }, [cur, prev]);
+    const lastIdx = useMemo(() => cur.reduce((acc, v, i) => (v > 0 ? i : acc), active[active.length - 1]), [cur, active]);
+    const [sel, setSel] = useState(lastIdx);
+    useEffect(() => { setSel(lastIdx); }, [year]); // reset selection when year changes
+    const present = useMemo(() => CHANNELS.filter((c) => sales.some((s) => yr(s.date) === year && s.channel === c.key)), [sales, year]);
+    const maxTotal = Math.max(1, ...active.map((i) => (mode === "channel" ? cur[i] : Math.max(cur[i], prev[i]))));
+    const ytd = cur.reduce((a, v) => a + v, 0);
+    const prevSame = prev.reduce((a, v, i) => (i <= lastIdx ? a + v : a), 0);
+    const ytdDelta = prevSame ? ((ytd - prevSame) / prevSame) * 100 : null;
+    const mDelta = prev[sel] ? ((cur[sel] - prev[sel]) / prev[sel]) * 100 : null;
+    const selBreak = present.map((c) => ({ c, amt: curCh[sel][c.key] || 0 })).filter((x) => x.amt > 0);
+    return (React.createElement("div", { className: "pf-card" },
+        React.createElement("div", { className: "pf-eyebrow" },
+            React.createElement(BarChart3, { size: 13 }),
+            " \u6708\u5225\u306E\u58F2\u4E0A\u63A8\u79FB"),
+        React.createElement("div", { className: "pf-chips", style: { margin: "12px 0 2px" } }, years.map((y) => React.createElement("button", { key: y, className: `pf-chip sm ${y === year ? "sel" : ""}`, onClick: () => setYear(y) },
+            y,
+            "\u5E74"))),
+        React.createElement(ModeToggle, { mode: mode, setMode: setMode }),
+        React.createElement("div", { className: "pf-readout" },
+            React.createElement("div", { className: "pf-readout-lab" },
+                React.createElement(CalendarDays, { size: 13 }),
+                " ",
+                year,
+                "\u5E74 ",
+                sel + 1,
+                "\u6708\u306E\u58F2\u4E0A"),
+            React.createElement("div", { className: "pf-readout-big pf-num" }, yen(cur[sel])),
+            React.createElement("div", { className: "pf-readout-sub" },
+                "\u524D\u5E74\u540C\u6708\uFF08",
+                year - 1,
+                "\u5E74",
+                sel + 1,
+                "\u6708\uFF09",
+                yen(prev[sel]),
+                "\u3000",
+                React.createElement(Delta, { v: mDelta })),
+            mode === "channel" && (React.createElement("div", { className: "pf-chbreak" }, selBreak.length === 0 ? React.createElement("div", { className: "pf-readout-sub" }, "\u3053\u306E\u6708\u306E\u58F2\u4E0A\u306F\u3042\u308A\u307E\u305B\u3093\u3002") :
+                selBreak.map(({ c, amt }) => (React.createElement("div", { key: c.key, className: "pf-leg" },
+                    React.createElement("span", { className: "pf-dot", style: { background: c.color } }),
+                    React.createElement("span", null, c.label),
+                    React.createElement("span", { className: "pf-leg-amt" }, yen(amt)),
+                    React.createElement("span", { className: "pf-leg-sub", style: { marginLeft: 8 } },
+                        ((amt / cur[sel]) * 100).toFixed(0),
+                        "%"))))))),
+        React.createElement("div", { className: "pf-clegend" }, mode === "total" ? (React.createElement(React.Fragment, null,
+            React.createElement("span", null,
+                React.createElement("span", { className: "pf-sw", style: { background: "var(--peach)" } }),
+                year,
+                "\u5E74"),
+            React.createElement("span", null,
+                React.createElement("span", { className: "pf-sw", style: { background: "var(--peach-pale)" } }),
+                year - 1,
+                "\u5E74"))) : present.map((c) => React.createElement("span", { key: c.key },
+            React.createElement("span", { className: "pf-sw", style: { background: c.color } }),
+            c.label))),
+        React.createElement("div", { className: "pf-chart" }, active.map((i) => (React.createElement("button", { key: i, className: "pf-mcol", onClick: () => setSel(i), "aria-label": `${i + 1}月` },
+            React.createElement("div", { className: `pf-mval ${i === sel ? "on" : ""}` }, compact(cur[i])),
+            React.createElement("div", { className: "pf-mbars" }, mode === "total" ? (React.createElement(React.Fragment, null,
+                React.createElement("div", { className: "pf-bar prev", style: { height: `${(prev[i] / maxTotal) * 100}%` } }),
+                React.createElement("div", { className: `pf-bar cur ${i === sel ? "sel" : ""}`, style: { height: `${(cur[i] / maxTotal) * 100}%` } }))) : (React.createElement("div", { className: `pf-stack ${i === sel ? "sel" : ""}`, style: { height: `${(cur[i] / maxTotal) * 100}%` } }, present.map((c) => { const a = curCh[i][c.key] || 0; if (!a || !cur[i])
+                return null; return React.createElement("div", { key: c.key, className: "pf-sseg", style: { height: `${(a / cur[i]) * 100}%`, background: c.color } }); })))),
+            React.createElement("div", { className: `pf-mlab ${i === sel ? "on" : ""}` },
+                i + 1,
+                "\u6708"))))),
+        React.createElement("div", { className: "pf-foot" },
+            React.createElement("span", null,
+                year,
+                "\u5E74 \u7D2F\u8A08 ",
+                React.createElement("b", { style: { color: "var(--ink)" } }, man(ytd))),
+            React.createElement("span", null,
+                "\u524D\u5E74\u540C\u671F ",
+                man(prevSame),
+                "\u3000",
+                React.createElement(Delta, { v: ytdDelta }))),
+        React.createElement("div", { className: "pf-hint" }, "\u68D2\uFF08\u307E\u305F\u306F\u6708\uFF09\u3092\u30BF\u30C3\u30D7\u3059\u308B\u3068\u3001\u305D\u306E\u6708\u306E\u91D1\u984D\u306B\u5207\u308A\u66FF\u308F\u308A\u307E\u3059")));
+}
+function YearlyChart({ sales }) {
+    const [mode, setMode] = useState("total");
+    const totals = {};
+    const chMap = {};
+    sales.forEach((s) => { const y = yr(s.date); totals[y] = (totals[y] || 0) + s.amount; (chMap[y] || (chMap[y] = {}))[s.channel] = ((chMap[y] || {})[s.channel] || 0) + s.amount; });
+    const years = Object.keys(totals).map(Number).sort((a, b) => a - b);
+    const max = Math.max(1, ...years.map((y) => totals[y]));
+    const last = years[years.length - 1], prev = years[years.length - 2];
+    const yoy = prev != null && totals[prev] ? ((totals[last] - totals[prev]) / totals[prev]) * 100 : null;
+    const present = CHANNELS.filter((c) => sales.some((s) => s.channel === c.key));
+    return (React.createElement("div", { className: "pf-card" },
+        React.createElement("div", { className: "pf-eyebrow" },
+            React.createElement(BarChart3, { size: 13 }),
+            " \u5E74\u5225\u306E\u58F2\u4E0A\u63A8\u79FB"),
+        React.createElement(ModeToggle, { mode: mode, setMode: setMode }),
+        React.createElement("div", { className: "pf-readout", style: { marginTop: 12 } },
+            React.createElement("div", { className: "pf-readout-lab" },
+                React.createElement(CalendarDays, { size: 13 }),
+                " ",
+                last,
+                "\u5E74\u306E\u58F2\u4E0A\uFF08\u7D2F\u8A08\uFF09"),
+            React.createElement("div", { className: "pf-readout-big pf-num" }, yen(totals[last])),
+            React.createElement("div", { className: "pf-readout-sub" },
+                "\u524D\u5E74\uFF08",
+                prev != null ? prev + "年 " + yen(totals[prev]) : "データなし",
+                "\uFF09\u3000",
+                React.createElement(Delta, { v: yoy }))),
+        React.createElement("div", { className: "pf-clegend" }, mode === "total" ? React.createElement("span", null,
+            React.createElement("span", { className: "pf-sw", style: { background: "var(--peach)" } }),
+            "\u5404\u5E74\u306E\u58F2\u4E0A\u5408\u8A08")
+            : present.map((c) => React.createElement("span", { key: c.key },
+                React.createElement("span", { className: "pf-sw", style: { background: c.color } }),
+                c.label))),
+        React.createElement("div", { className: "pf-ychart" }, years.map((y) => (React.createElement("div", { className: "pf-ycol", key: y },
+            React.createElement("div", { className: "pf-yval" }, man(totals[y])),
+            React.createElement("div", { className: "pf-ywrap" }, mode === "total" ? (React.createElement("div", { className: `pf-ybar ${y === last ? "last" : ""}`, style: { height: `${(totals[y] / max) * 100}%` } })) : (React.createElement("div", { className: "pf-ybar stacked", style: { height: `${(totals[y] / max) * 100}%`, width: "64%", maxWidth: 64 } }, present.map((c) => { const a = (chMap[y] || {})[c.key] || 0; if (!a)
+                return null; return React.createElement("div", { key: c.key, className: "pf-sseg", style: { height: `${(a / totals[y]) * 100}%`, background: c.color } }); })))),
+            React.createElement("div", { className: `pf-ylab ${y === last ? "last" : ""}` },
+                y,
+                "\u5E74"))))),
+        React.createElement("div", { className: "pf-hint" },
+            "\u68D2\u306E\u4E0A\u306E\u6570\u5B57\u304C\u5404\u5E74\u306E\u58F2\u4E0A\u5408\u8A08\u3067\u3059",
+            mode === "channel" ? "（色はチャネル別の内訳）" : "")));
+}
+function TrendView({ data }) {
+    if (data.sales.length === 0)
+        return React.createElement(Empty, { I: BarChart3, title: "\u307E\u3060\u30C7\u30FC\u30BF\u304C\u3042\u308A\u307E\u305B\u3093", text: "\u8CA9\u58F2\u3092\u8A18\u9332\u3059\u308B\u3068\u3001\u6708\u5225\u30FB\u5E74\u5225\u306E\u63A8\u79FB\u3068\u524D\u5E74\u6BD4\u8F03\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002" });
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u58F2\u4E0A\u306E\u63A8\u79FB")),
+        React.createElement(MonthlyChart, { sales: data.sales }),
+        React.createElement(YearlyChart, { sales: data.sales })));
+}
+/* ───────────────────────── PRODUCTION ───────────────────────── */
+function ProdView({ data, update, setSheet, ask }) {
+    const works = [...data.works].sort((a, b) => b.date.localeCompare(a.date));
+    const del = (w) => ask(`「${wk(w.type).label}・${w.block}」の記録を削除します。`, () => update((d) => ({ ...d, works: d.works.filter((x) => x.id !== w.id) })));
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u4F5C\u696D\u8A18\u9332"),
+            React.createElement("button", { className: "pf-addbtn", onClick: () => setSheet("work") },
+                React.createElement(Plus, { size: 15 }),
+                " \u8A18\u9332\u3059\u308B")),
+        works.length === 0 ? React.createElement(Empty, { I: Leaf, title: "\u307E\u3060\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093", text: "\u6458\u679C\u30FB\u888B\u639B\u3051\u30FB\u9632\u9664\u30FB\u53CE\u7A6B\u306A\u3069\u3092\u3053\u3053\u306B\u6B8B\u3059\u3068\u3001\u9632\u9664\u5C65\u6B74\u3084\u53CE\u91CF\u304C\u307E\u3068\u307E\u308A\u307E\u3059\u3002" }) : (React.createElement("div", { className: "pf-card", style: { paddingTop: 4, paddingBottom: 4 } }, works.map((w) => {
+            const W = wk(w.type);
+            const I = W.icon;
+            return (React.createElement("div", { key: w.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: W.color + "1a", color: W.color } },
+                    React.createElement(I, { size: 18 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" },
+                        W.label,
+                        React.createElement("span", { style: { color: "var(--soft)", fontWeight: 400 } },
+                            " \u30FB",
+                            w.block)),
+                    React.createElement("div", { className: "pf-row-s" }, w.type === "bojo" && w.agent ? `薬剤：${w.agent}` : w.type === "kanju" && w.kg ? `収量 ${w.kg}kg` : w.note || (w.hours ? `${w.hours}時間` : "—"))),
+                React.createElement("div", { className: "pf-row-r", style: { display: "flex", alignItems: "center", gap: 8 } },
+                    React.createElement("div", { className: "pf-row-s" }, md(w.date)),
+                    React.createElement("button", { className: "pf-del", onClick: () => del(w), "aria-label": "\u524A\u9664" },
+                        React.createElement(Trash2, { size: 15 })))));
+        }))),
+        React.createElement("div", { className: "pf-card", style: { marginTop: 14, background: "var(--leaf-pale)", border: "none" } },
+            React.createElement("div", { className: "pf-eyebrow", style: { color: "var(--leaf)" } },
+                React.createElement(BadgeCheck, { size: 13 }),
+                " \u9632\u9664\u5C65\u6B74"),
+            React.createElement("p", { style: { fontSize: 12.5, color: "#3d5e47", lineHeight: 1.6, marginTop: 8 } }, "\u9632\u9664\u3092\u8A18\u9332\u3057\u3066\u304A\u304F\u3068\u3001\u51FA\u8377\u6642\u306E\u30C8\u30EC\u30FC\u30B5\u30D3\u30EA\u30C6\u30A3\u8AAC\u660E\u3084\u6765\u5B63\u306E\u8A08\u753B\u306B\u4F7F\u3048\u307E\u3059\u3002\u8A2D\u5B9A\u304B\u3089CSV\u306B\u66F8\u304D\u51FA\u305B\u307E\u3059\u3002"))));
+}
+/* ───────────────────────── SALES ───────────────────────── */
+function SalesView({ data, update, setSheet, ask }) {
+    const [filter, setFilter] = useState("all");
+    const byId = useMemo(() => Object.fromEntries(data.customers.map((c) => [c.id, c])), [data.customers]);
+    const sales = [...data.sales].sort((a, b) => b.date.localeCompare(a.date));
+    const shown = filter === "all" ? sales : sales.filter((s) => s.channel === filter);
+    const nameOf = (s) => { var _a; return (s.customerId ? ((_a = byId[s.customerId]) === null || _a === void 0 ? void 0 : _a.name) || s.label || ch(s.channel).label : s.label || ch(s.channel).label); };
+    const del = (s) => ask(`「${nameOf(s)}・${yen(s.amount)}」の販売記録を削除します。`, () => update((d) => ({ ...d, sales: d.sales.filter((x) => x.id !== s.id) })));
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u8CA9\u58F2\u8A18\u9332"),
+            React.createElement("button", { className: "pf-addbtn", onClick: () => setSheet("sale") },
+                React.createElement(Plus, { size: 15 }),
+                " \u8A18\u9332\u3059\u308B")),
+        React.createElement("div", { className: "pf-chips", style: { marginBottom: 16 } },
+            React.createElement("button", { className: `pf-chip ${filter === "all" ? "sel" : ""}`, onClick: () => setFilter("all") }, "\u3059\u3079\u3066"),
+            CHANNELS.map((c) => React.createElement("button", { key: c.key, className: `pf-chip ${filter === c.key ? "sel" : ""}`, onClick: () => setFilter(c.key) }, c.label))),
+        shown.length === 0 ? React.createElement(Empty, { I: ShoppingBag, title: "\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093", text: "\u30C1\u30E3\u30CD\u30EB\u3068\u9867\u5BA2\u3092\u9078\u3093\u3067\u58F2\u4E0A\u3092\u6B8B\u3059\u3068\u3001\u52A0\u91CD\u5358\u4FA1\u30FB\u63A8\u79FB\u30FB\u9867\u5BA2\u306E\u7D2F\u8A08\u304C\u81EA\u52D5\u3067\u66F4\u65B0\u3055\u308C\u307E\u3059\u3002" }) : (React.createElement("div", { className: "pf-card", style: { paddingTop: 4, paddingBottom: 4 } }, shown.map((s) => {
+            const C = ch(s.channel);
+            const I = C.icon;
+            return (React.createElement("div", { key: s.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: C.color + "1a", color: C.color } },
+                    React.createElement(I, { size: 18 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" }, nameOf(s)),
+                    React.createElement("div", { className: "pf-row-s" },
+                        React.createElement("span", { className: "pf-tag", style: { background: C.color + "22", color: C.color } }, C.label),
+                        s.kg ? ` ${s.kg}kg` : "",
+                        s.variety && s.variety !== "—" ? ` ・${s.variety}` : "")),
+                React.createElement("div", { className: "pf-row-r", style: { display: "flex", alignItems: "center", gap: 8 } },
+                    React.createElement("div", null,
+                        React.createElement("div", { className: "pf-row-amt" }, yen(s.amount)),
+                        React.createElement("div", { className: "pf-row-s" }, md(s.date))),
+                    React.createElement("button", { className: "pf-del", onClick: () => del(s), "aria-label": "\u524A\u9664" },
+                        React.createElement(Trash2, { size: 15 })))));
+        })))));
+}
+/* ───────────────────────── CUSTOMERS ───────────────────────── */
+function CustView({ data, update, setSheet, ask }) {
+    const [detailId, setDetailId] = useState(null);
+    const byId = useMemo(() => Object.fromEntries(data.customers.map((c) => [c.id, c])), [data.customers]);
+    const stats = useMemo(() => {
+        const m = {};
+        data.sales.forEach((s) => { if (!s.customerId)
+            return; const e = m[s.customerId] || (m[s.customerId] = { total: 0, last: "", count: 0 }); e.total += s.amount; e.count += 1; if (s.date > e.last)
+            e.last = s.date; });
+        return m;
+    }, [data.sales]);
+    const custs = [...data.customers].sort((a, b) => { var _a, _b; return (((_a = stats[b.id]) === null || _a === void 0 ? void 0 : _a.total) || 0) - (((_b = stats[a.id]) === null || _b === void 0 ? void 0 : _b.total) || 0); });
+    const resv = data.reservations;
+    const rebookCount = custs.filter((c) => c.rebook).length;
+    const toggleRebook = (id) => update((d) => ({ ...d, customers: d.customers.map((c) => c.id === id ? { ...c, rebook: !c.rebook } : c) }));
+    const delC = (c) => ask(`「${c.name}」を削除します。過去の販売記録は残りますが、この顧客の集計からは外れます。`, () => { update((d) => ({ ...d, customers: d.customers.filter((x) => x.id !== c.id) })); setDetailId(null); });
+    const togglePaid = (id) => update((d) => ({ ...d, reservations: d.reservations.map((r) => r.id === id ? { ...r, paid: !r.paid } : r) }));
+    const delR = (r) => ask(`「${r.label || "予約"}・${yen(r.amount)}」の予約を削除します。`, () => update((d) => ({ ...d, reservations: d.reservations.filter((x) => x.id !== r.id) })));
+    const convert = (r) => ask(`「${r.label || "予約"}」を出荷済みとして売上に計上します。予約一覧から消え、販売記録に追加されます。`, () => update((d) => ({
+        ...d, sales: [...d.sales, { id: uid(), date: r.deliveryDate || today(), channel: r.channel || "ec", customerId: r.customerId || null, label: r.label || "", variety: r.variety || "", kg: r.kg || 0, amount: r.amount || 0 }],
+        reservations: d.reservations.filter((x) => x.id !== r.id),
+    })));
+    const rName = (r) => { var _a; return (r.customerId ? ((_a = byId[r.customerId]) === null || _a === void 0 ? void 0 : _a.name) || r.label : r.label || "—"); };
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u5148\u884C\u4E88\u7D04"),
+            React.createElement("button", { className: "pf-addbtn", onClick: () => setSheet("reservation") },
+                React.createElement(Plus, { size: 15 }),
+                " \u4E88\u7D04\u3092\u8FFD\u52A0")),
+        resv.length === 0 ? React.createElement(Empty, { I: CalendarClock, title: "\u4E88\u7D04\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093", text: "\u53CE\u7A6B\u524D\u306B\u4E88\u7D04\u3092\u53D6\u308B\u3068\u9700\u8981\u304C\u8AAD\u3081\u3001\u5165\u91D1\u304C\u524D\u5012\u3057\u306B\u306A\u308A\u307E\u3059\u3002\u51FA\u8377\u3057\u305F\u3089\u300C\u58F2\u4E0A\u306B\u8A08\u4E0A\u300D\u3067\u8CA9\u58F2\u3078\u79FB\u305B\u307E\u3059\u3002" }) : (React.createElement("div", { className: "pf-card", style: { paddingTop: 4, paddingBottom: 4 } }, resv.map((r) => {
+            const C = ch(r.channel);
+            return (React.createElement("div", { key: r.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: r.paid ? "var(--leaf-pale)" : "var(--peach-pale)", color: r.paid ? "var(--leaf)" : "var(--peach)" } }, r.paid ? React.createElement(Check, { size: 18 }) : React.createElement(Clock, { size: 18 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" }, rName(r)),
+                    React.createElement("div", { className: "pf-row-s" },
+                        C.label,
+                        r.variety && r.variety !== "—" ? `・${r.variety}` : "",
+                        "\u30FB",
+                        r.kg,
+                        "kg",
+                        r.deliveryDate ? ` ・着 ${md(r.deliveryDate)}` : ""),
+                    React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 7 } },
+                        React.createElement("button", { className: `pf-mini ${r.paid ? "paid" : "due"}`, onClick: () => togglePaid(r.id) }, r.paid ? "入金済" : "未入金"),
+                        React.createElement("button", { className: "pf-mini calc", onClick: () => convert(r) },
+                            React.createElement(ArrowRightLeft, { size: 11 }),
+                            " \u58F2\u4E0A\u306B\u8A08\u4E0A"))),
+                React.createElement("div", { className: "pf-row-r", style: { display: "flex", alignItems: "flex-start", gap: 8 } },
+                    React.createElement("div", { className: "pf-row-amt" }, yen(r.amount)),
+                    React.createElement("button", { className: "pf-del", onClick: () => delR(r), "aria-label": "\u524A\u9664" },
+                        React.createElement(Trash2, { size: 15 })))));
+        }))),
+        React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u9867\u5BA2\u30EA\u30B9\u30C8"),
+            React.createElement("button", { className: "pf-addbtn", onClick: () => setSheet("customer") },
+                React.createElement(Plus, { size: 15 }),
+                " \u8FFD\u52A0")),
+        React.createElement("div", { className: "pf-card", style: { background: "var(--peach-pale)", border: "none", marginBottom: 14 } },
+            React.createElement("div", { style: { fontSize: 13, color: "var(--peach-deep)", fontWeight: 700 } },
+                "\u6765\u5E74\u3082\u4E88\u7D04 ",
+                rebookCount,
+                " / ",
+                custs.length,
+                " \u540D"),
+            React.createElement("div", { style: { fontSize: 11.5, color: "#9a6a5b", marginTop: 4, lineHeight: 1.5 } }, "\u540D\u524D\u3092\u30BF\u30C3\u30D7\u3067\u8CFC\u8CB7\u5C65\u6B74\u3092\u8868\u793A\u3002\u7D2F\u8A08\u306F\u8CA9\u58F2\u8A18\u9332\u304B\u3089\u81EA\u52D5\u96C6\u8A08\u3055\u308C\u307E\u3059\u3002")),
+        custs.length === 0 ? React.createElement(Empty, { I: Users, title: "\u9867\u5BA2\u304C\u3044\u307E\u305B\u3093", text: "\u8D08\u7B54\u3084\u30DE\u30EB\u30B7\u30A7\u3067\u89E6\u308C\u305F\u4EBA\u3092\u767B\u9332\u3057\u3001\u6765\u5E74\u306E\u4E88\u7D04\u306B\u3064\u306A\u3052\u307E\u3057\u3087\u3046\u3002" }) : (React.createElement("div", { className: "pf-card", style: { paddingTop: 4, paddingBottom: 4 } }, custs.map((c) => {
+            const C = ch(c.channel);
+            const st = stats[c.id];
+            return (React.createElement("div", { key: c.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: C.color + "1a", color: C.color } },
+                    React.createElement(Users, { size: 18 })),
+                React.createElement("button", { className: "pf-row-tap", onClick: () => setDetailId(c.id) },
+                    React.createElement("div", { className: "pf-row-t" },
+                        c.name,
+                        " ",
+                        React.createElement(ChevronRight, { size: 13, style: { verticalAlign: "-2px", color: "var(--soft)" } })),
+                    React.createElement("div", { className: "pf-row-s" },
+                        c.contact || C.label,
+                        " \u30FB\u7D2F\u8A08 ",
+                        yen((st === null || st === void 0 ? void 0 : st.total) || 0),
+                        (st === null || st === void 0 ? void 0 : st.last) ? ` ・最終 ${md(st.last)}` : "")),
+                React.createElement("div", { className: "pf-row-r", style: { display: "flex", alignItems: "center", gap: 8 } },
+                    React.createElement("button", { className: `pf-toggle ${c.rebook ? "on" : ""}`, style: { padding: "6px 9px" }, onClick: () => toggleRebook(c.id) },
+                        React.createElement("span", { className: "pf-check" }, c.rebook && React.createElement(Check, { size: 13 })),
+                        React.createElement("span", { style: { fontSize: 11 } }, "\u6765\u5E74")),
+                    React.createElement("button", { className: "pf-del", onClick: () => delC(c), "aria-label": "\u524A\u9664" },
+                        React.createElement(Trash2, { size: 15 })))));
+        }))),
+        detailId && byId[detailId] && (React.createElement(CustomerDetailSheet, { customer: byId[detailId], stats: stats[detailId], sales: data.sales, reservations: resv, onClose: () => setDetailId(null), toggleRebook: toggleRebook, del: () => delC(byId[detailId]) }))));
+}
+function CustomerDetailSheet({ customer, stats, sales, reservations, onClose, toggleRebook, del }) {
+    const hist = sales.filter((s) => s.customerId === customer.id).sort((a, b) => b.date.localeCompare(a.date));
+    const resv = reservations.filter((r) => r.customerId === customer.id);
+    const C = ch(customer.channel);
+    return (React.createElement(Sheet, { title: customer.name, onClose: onClose },
+        React.createElement("div", { style: { fontSize: 12.5, color: "var(--soft)", marginTop: -6, marginBottom: 14 } },
+            React.createElement("span", { className: "pf-tag", style: { background: C.color + "22", color: C.color } }, C.label),
+            customer.contact ? ` ・${customer.contact}` : ""),
+        React.createElement("div", { className: "pf-kpis", style: { marginTop: 0 } },
+            React.createElement("div", { className: "pf-kpi" },
+                React.createElement("div", { className: "pf-kpi-l" },
+                    React.createElement(Receipt, { size: 12 }),
+                    " \u7D2F\u8A08\u8CFC\u5165"),
+                React.createElement("div", { className: "pf-kpi-v pf-num" }, yen((stats === null || stats === void 0 ? void 0 : stats.total) || 0))),
+            React.createElement("div", { className: "pf-kpi" },
+                React.createElement("div", { className: "pf-kpi-l" },
+                    React.createElement(ShoppingBag, { size: 12 }),
+                    " \u56DE\u6570\u30FB\u6700\u7D42"),
+                React.createElement("div", { className: "pf-kpi-v pf-num" },
+                    (stats === null || stats === void 0 ? void 0 : stats.count) || 0,
+                    React.createElement("span", { style: { fontSize: 12, color: "var(--soft)" } }, " \u56DE")),
+                React.createElement("div", { className: "pf-leg-sub", style: { marginTop: 2 } },
+                    "\u6700\u7D42 ",
+                    (stats === null || stats === void 0 ? void 0 : stats.last) ? md(stats.last) : "—"))),
+        React.createElement("button", { className: `pf-toggle ${customer.rebook ? "on" : ""}`, style: { width: "100%", marginTop: 14 }, onClick: () => toggleRebook(customer.id) },
+            React.createElement("span", { className: "pf-check" }, customer.rebook && React.createElement(Check, { size: 13 })),
+            " \u6765\u5E74\u3082\u4E88\u7D04\u3057\u3066\u304F\u308C\u308B\u56FA\u5B9A\u5BA2"),
+        resv.length > 0 && (React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "pf-label", style: { marginTop: 20 } }, "\u3053\u306E\u9867\u5BA2\u306E\u5148\u884C\u4E88\u7D04"),
+            React.createElement("div", { className: "pf-card", style: { paddingTop: 2, paddingBottom: 2 } }, resv.map((r) => (React.createElement("div", { key: r.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: r.paid ? "var(--leaf-pale)" : "var(--peach-pale)", color: r.paid ? "var(--leaf)" : "var(--peach)" } }, r.paid ? React.createElement(Check, { size: 16 }) : React.createElement(Clock, { size: 16 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" },
+                        r.variety && r.variety !== "—" ? r.variety : ch(r.channel).label,
+                        " ",
+                        r.kg,
+                        "kg"),
+                    React.createElement("div", { className: "pf-row-s" },
+                        r.deliveryDate ? `着 ${md(r.deliveryDate)}` : "",
+                        r.note ? ` ・${r.note}` : "")),
+                React.createElement("div", { className: "pf-row-r" },
+                    React.createElement("div", { className: "pf-row-amt" }, yen(r.amount))))))))),
+        React.createElement("div", { className: "pf-label", style: { marginTop: 20 } },
+            "\u8CFC\u8CB7\u5C65\u6B74\uFF08",
+            hist.length,
+            "\u4EF6\uFF09"),
+        hist.length === 0 ? (React.createElement("div", { className: "pf-card", style: { color: "var(--soft)", fontSize: 13 } }, "\u307E\u3060\u8CA9\u58F2\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093\u3002\u8CA9\u58F2\u30BF\u30D6\u3067\u3053\u306E\u9867\u5BA2\u3092\u9078\u3093\u3067\u8A18\u9332\u3067\u304D\u307E\u3059\u3002")) : (React.createElement("div", { className: "pf-card", style: { paddingTop: 2, paddingBottom: 2 } }, hist.map((s) => {
+            const SC = ch(s.channel);
+            const I = SC.icon;
+            return (React.createElement("div", { key: s.id, className: "pf-row" },
+                React.createElement("span", { className: "pf-row-ic", style: { background: SC.color + "1a", color: SC.color } },
+                    React.createElement(I, { size: 16 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" },
+                        SC.label,
+                        s.variety && s.variety !== "—" ? ` ・${s.variety}` : ""),
+                    React.createElement("div", { className: "pf-row-s" },
+                        s.kg ? `${s.kg}kg ・` : "",
+                        s.date)),
+                React.createElement("div", { className: "pf-row-r" },
+                    React.createElement("div", { className: "pf-row-amt" }, yen(s.amount)))));
+        }))),
+        React.createElement("button", { className: "pf-btn ghost", style: { marginTop: 18, color: "var(--peach-deep)" }, onClick: del },
+            React.createElement(Trash2, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+            "\u3053\u306E\u9867\u5BA2\u3092\u524A\u9664")));
+}
+/* ───────────────────────── shared bits ───────────────────────── */
+function Empty({ I, title, text }) {
+    return (React.createElement("div", { className: "pf-card pf-empty" },
+        React.createElement("div", { className: "pf-empty-ic" },
+            React.createElement(I, { size: 24 })),
+        React.createElement("h4", null, title),
+        React.createElement("p", null, text)));
+}
+function Sheet({ title, onClose, children }) {
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-scrim", onClick: onClose }),
+        React.createElement("div", { className: "pf-sheet", role: "dialog", "aria-modal": "true" },
+            React.createElement("div", { className: "pf-grip" }),
+            React.createElement("div", { className: "pf-sheet-h" },
+                React.createElement("h3", { className: "pf-disp" }, title),
+                React.createElement("button", { className: "pf-icon-btn", onClick: onClose, "aria-label": "\u9589\u3058\u308B" },
+                    React.createElement(X, { size: 18 }))),
+            children)));
+}
+function ChipSelect({ options, value, onChange }) {
+    return (React.createElement("div", { className: "pf-chips" }, options.map((o) => (React.createElement("button", { key: o.key || o, type: "button", className: `pf-chip ${value === (o.key || o) ? "sel" : ""}`, onClick: () => onChange(o.key || o) }, o.label || o)))));
+}
+function CustomerPicker({ customers, sel, setSel, newName, setNewName, memo, setMemo }) {
+    return (React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u9867\u5BA2"),
+            React.createElement("select", { className: "pf-input", value: sel, onChange: (e) => setSel(e.target.value) },
+                React.createElement("option", { value: "" }, "\u767B\u9332\u3057\u306A\u3044\uFF08\u76F4\u58F2\u6240\u30FB\u3075\u308B\u3055\u3068\u7D0D\u7A0E\u306A\u3069\uFF09"),
+                customers.map((c) => React.createElement("option", { key: c.id, value: c.id }, c.name)),
+                React.createElement("option", { value: "__new__" }, "\uFF0B \u65B0\u3057\u3044\u9867\u5BA2\u3092\u767B\u9332"))),
+        sel === "__new__" && React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u65B0\u3057\u3044\u9867\u5BA2\u540D"),
+            React.createElement("input", { className: "pf-input", value: newName, onChange: (e) => setNewName(e.target.value), placeholder: "\u4F8B\uFF1A\u4E2D\u6751\u69D8" })),
+        sel === "" && React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u5B9B\u540D\u30FB\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("input", { className: "pf-input", value: memo, onChange: (e) => setMemo(e.target.value), placeholder: "\u4F8B\uFF1A\u76F4\u58F2\u6240\uFF0F\u30B3\u30F3\u30DD\u30FC\u30C812\u500B" }))));
+}
+function resolveCustomer(d, sel, newName, memo, channel) {
+    let customers = d.customers, customerId = null, label = "";
+    if (sel === "__new__" && newName.trim()) {
+        const nc = { id: uid(), name: newName.trim(), channel, contact: "", rebook: false };
+        customers = [...customers, nc];
+        customerId = nc.id;
+        label = nc.name;
+    }
+    else if (sel && sel !== "__new__") {
+        customerId = sel;
+        label = (d.customers.find((c) => c.id === sel) || {}).name || "";
+    }
+    else {
+        customerId = null;
+        label = memo.trim();
+    }
+    return { customers, customerId, label };
+}
+/* ── sale form ── */
+function SaleSheet({ customers, onClose, update }) {
+    const [channel, setChannel] = useState("ec");
+    const [sel, setSel] = useState(""), [newName, setNewName] = useState(""), [memo, setMemo] = useState("");
+    const [variety, setVariety] = useState("白鳳"), [kg, setKg] = useState(""), [amount, setAmount] = useState(""), [date, setDate] = useState(today());
+    const ok = amount && Number(amount) > 0;
+    const save = () => { update((d) => { const { customers: cs, customerId, label } = resolveCustomer(d, sel, newName, memo, channel); return { ...d, customers: cs, sales: [...d.sales, { id: uid(), date, channel, customerId, label, variety, kg: Number(kg) || 0, amount: Number(amount) }] }; }); onClose(); };
+    return (React.createElement(Sheet, { title: "\u8CA9\u58F2\u3092\u8A18\u9332", onClose: onClose },
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u30C1\u30E3\u30CD\u30EB"),
+            React.createElement(ChipSelect, { options: CHANNELS, value: channel, onChange: setChannel })),
+        React.createElement(CustomerPicker, { customers: customers, sel: sel, setSel: setSel, newName: newName, setNewName: setNewName, memo: memo, setMemo: setMemo }),
+        React.createElement("div", { className: "pf-two" },
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u54C1\u7A2E"),
+                React.createElement("select", { className: "pf-input", value: variety, onChange: (e) => setVariety(e.target.value) }, VARIETIES.map((v) => React.createElement("option", { key: v }, v)))),
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u6570\u91CF (kg)"),
+                React.createElement("input", { className: "pf-input", type: "number", inputMode: "decimal", value: kg, onChange: (e) => setKg(e.target.value), placeholder: "0" }))),
+        React.createElement("div", { className: "pf-two" },
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u91D1\u984D (\u5186)"),
+                React.createElement("input", { className: "pf-input", type: "number", inputMode: "numeric", value: amount, onChange: (e) => setAmount(e.target.value), placeholder: "0" })),
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u65E5\u4ED8"),
+                React.createElement("input", { className: "pf-input", type: "date", value: date, onChange: (e) => setDate(e.target.value) }))),
+        React.createElement("button", { className: "pf-btn", disabled: !ok, style: { opacity: ok ? 1 : .5 }, onClick: save }, "\u4FDD\u5B58\u3059\u308B")));
+}
+/* ── work form ── */
+function WorkSheet({ onClose, update }) {
+    const [type, setType] = useState("tekika"), [block, setBlock] = useState(BLOCKS[0]), [date, setDate] = useState(today());
+    const [hours, setHours] = useState(""), [kg, setKg] = useState(""), [agent, setAgent] = useState(""), [note, setNote] = useState("");
+    const save = () => { update((d) => ({ ...d, works: [...d.works, { id: uid(), date, type, block, hours: Number(hours) || 0, kg: Number(kg) || 0, agent, note }] })); onClose(); };
+    return (React.createElement(Sheet, { title: "\u4F5C\u696D\u3092\u8A18\u9332", onClose: onClose },
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u4F5C\u696D\u306E\u7A2E\u985E"),
+            React.createElement(ChipSelect, { options: WORKS, value: type, onChange: setType })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u5703\u5834"),
+            React.createElement(ChipSelect, { options: [...BLOCKS, "全圃場"], value: block, onChange: setBlock })),
+        type === "bojo" && React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u4F7F\u7528\u85AC\u5264"),
+            React.createElement("input", { className: "pf-input", value: agent, onChange: (e) => setAgent(e.target.value), placeholder: "\u4F8B\uFF1A\u6BBA\u83CC\u5264A\u30FB\u5C55\u7740\u5264" })),
+        React.createElement("div", { className: "pf-two" },
+            type === "kanju" ? React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u53CE\u91CF (kg)"),
+                React.createElement("input", { className: "pf-input", type: "number", inputMode: "decimal", value: kg, onChange: (e) => setKg(e.target.value), placeholder: "0" }))
+                : React.createElement("div", { className: "pf-field" },
+                    React.createElement("label", { className: "pf-label" }, "\u4F5C\u696D\u6642\u9593 (h)"),
+                    React.createElement("input", { className: "pf-input", type: "number", inputMode: "decimal", value: hours, onChange: (e) => setHours(e.target.value), placeholder: "0" })),
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u65E5\u4ED8"),
+                React.createElement("input", { className: "pf-input", type: "date", value: date, onChange: (e) => setDate(e.target.value) }))),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("input", { className: "pf-input", value: note, onChange: (e) => setNote(e.target.value), placeholder: "\u6C17\u3065\u3044\u305F\u3053\u3068\u3092\u6B8B\u3059" })),
+        React.createElement("button", { className: "pf-btn", onClick: save }, "\u4FDD\u5B58\u3059\u308B")));
+}
+/* ── customer form ── */
+function CustomerSheet({ onClose, update }) {
+    const [name, setName] = useState(""), [channel, setChannel] = useState("ec"), [contact, setContact] = useState(""), [rebook, setRebook] = useState(false);
+    const ok = name.trim();
+    const save = () => { update((d) => ({ ...d, customers: [...d.customers, { id: uid(), name: name.trim(), channel, contact, rebook }] })); onClose(); };
+    return (React.createElement(Sheet, { title: "\u9867\u5BA2\u3092\u8FFD\u52A0", onClose: onClose },
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u304A\u540D\u524D"),
+            React.createElement("input", { className: "pf-input", value: name, onChange: (e) => setName(e.target.value), placeholder: "\u4F8B\uFF1A\u9AD8\u6A4B\u69D8" })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u4E3B\u306A\u30C1\u30E3\u30CD\u30EB"),
+            React.createElement(ChipSelect, { options: CHANNELS, value: channel, onChange: setChannel })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u30E1\u30E2\u30FB\u9023\u7D61\u5148\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("input", { className: "pf-input", value: contact, onChange: (e) => setContact(e.target.value), placeholder: "\u4F8B\uFF1ALINE\u767B\u9332\u6E08\u307F\uFF0F\u5B9A\u671F\u4FBF" })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("button", { type: "button", className: `pf-toggle ${rebook ? "on" : ""}`, onClick: () => setRebook(!rebook), style: { width: "100%" } },
+                React.createElement("span", { className: "pf-check" }, rebook && React.createElement(Check, { size: 13 })),
+                " \u6765\u5E74\u3082\u4E88\u7D04\u3057\u3066\u304F\u308C\u308B\u56FA\u5B9A\u5BA2")),
+        React.createElement("button", { className: "pf-btn", disabled: !ok, style: { opacity: ok ? 1 : .5 }, onClick: save }, "\u4FDD\u5B58\u3059\u308B")));
+}
+/* ── reservation form ── */
+function ResvSheet({ customers, onClose, update }) {
+    const [sel, setSel] = useState(""), [newName, setNewName] = useState(""), [memo, setMemo] = useState("");
+    const [channel, setChannel] = useState("ec"), [variety, setVariety] = useState("白鳳"), [kg, setKg] = useState(""), [amount, setAmount] = useState("");
+    const [paid, setPaid] = useState(false), [deliveryDate, setDeliveryDate] = useState(""), [note, setNote] = useState("");
+    const ok = amount && Number(amount) > 0 && (sel !== "" || memo.trim());
+    const save = () => { update((d) => { const { customers: cs, customerId, label } = resolveCustomer(d, sel, newName, memo, channel); return { ...d, customers: cs, reservations: [...d.reservations, { id: uid(), customerId, label, channel, variety, kg: Number(kg) || 0, amount: Number(amount) || 0, paid, deliveryDate, note }] }; }); onClose(); };
+    return (React.createElement(Sheet, { title: "\u5148\u884C\u4E88\u7D04\u3092\u8FFD\u52A0", onClose: onClose },
+        React.createElement(CustomerPicker, { customers: customers, sel: sel, setSel: setSel, newName: newName, setNewName: setNewName, memo: memo, setMemo: setMemo }),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u30C1\u30E3\u30CD\u30EB\uFF08\u8A08\u4E0A\u5148\uFF09"),
+            React.createElement(ChipSelect, { options: CHANNELS, value: channel, onChange: setChannel })),
+        React.createElement("div", { className: "pf-two" },
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u54C1\u7A2E"),
+                React.createElement("select", { className: "pf-input", value: variety, onChange: (e) => setVariety(e.target.value) }, VARIETIES.map((v) => React.createElement("option", { key: v }, v)))),
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" },
+                    React.createElement(CalendarDays, { size: 11, style: { verticalAlign: "-1px" } }),
+                    " \u304A\u5C4A\u3051\u5E0C\u671B\u65E5"),
+                React.createElement("input", { className: "pf-input", type: "date", value: deliveryDate, onChange: (e) => setDeliveryDate(e.target.value) }))),
+        React.createElement("div", { className: "pf-two" },
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u6570\u91CF (kg)"),
+                React.createElement("input", { className: "pf-input", type: "number", inputMode: "decimal", value: kg, onChange: (e) => setKg(e.target.value), placeholder: "0" })),
+            React.createElement("div", { className: "pf-field" },
+                React.createElement("label", { className: "pf-label" }, "\u91D1\u984D (\u5186)"),
+                React.createElement("input", { className: "pf-input", type: "number", inputMode: "numeric", value: amount, onChange: (e) => setAmount(e.target.value), placeholder: "0" }))),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("input", { className: "pf-input", value: note, onChange: (e) => setNote(e.target.value), placeholder: "\u4F8B\uFF1A\u306E\u3057\u5E0C\u671B\uFF0F2\u7BB1\u306B\u5206\u3051\u308B" })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("button", { type: "button", className: `pf-toggle ${paid ? "on" : ""}`, onClick: () => setPaid(!paid), style: { width: "100%" } },
+                React.createElement("span", { className: "pf-check" }, paid && React.createElement(Check, { size: 13 })),
+                " \u5165\u91D1\u6E08\u307F")),
+        React.createElement("button", { className: "pf-btn", disabled: !ok, style: { opacity: ok ? 1 : .5 }, onClick: save }, "\u4FDD\u5B58\u3059\u308B")));
+}
+/* ── csv / backup ── */
+function download(filename, text, type) {
+    try {
+        const blob = new Blob([text], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const csvEsc = (v) => { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const toCsv = (rows) => "\uFEFF" + rows.map((r) => r.map(csvEsc).join(",")).join("\n");
+function salesToCsv(data) {
+    const byId = Object.fromEntries(data.customers.map((c) => [c.id, c.name]));
+    const rows = [["日付", "チャネル", "顧客", "品種", "数量kg", "金額"]];
+    [...data.sales].sort((a, b) => a.date.localeCompare(b.date)).forEach((s) => rows.push([s.date, ch(s.channel).label, s.customerId ? byId[s.customerId] || s.label : s.label, s.variety || "", s.kg || 0, s.amount]));
+    return toCsv(rows);
+}
+function worksToCsv(data) {
+    const rows = [["日付", "作業", "圃場", "作業時間h", "収量kg", "使用薬剤", "メモ"]];
+    [...data.works].sort((a, b) => a.date.localeCompare(b.date)).forEach((w) => rows.push([w.date, wk(w.type).label, w.block, w.hours || 0, w.kg || 0, w.agent || "", w.note || ""]));
+    return toCsv(rows);
+}
+function resvToCsv(data) {
+    const byId = Object.fromEntries(data.customers.map((c) => [c.id, c.name]));
+    const rows = [["お届け希望日", "顧客", "チャネル", "品種", "数量kg", "金額", "入金", "メモ"]];
+    [...data.reservations].sort((a, b) => (a.deliveryDate || "").localeCompare(b.deliveryDate || "")).forEach((r) => rows.push([r.deliveryDate || "", r.customerId ? byId[r.customerId] || r.label : r.label, ch(r.channel).label, r.variety || "", r.kg || 0, r.amount, r.paid ? "済" : "未", r.note || ""]));
+    return toCsv(rows);
+}
+/* ── settings ── */
+function SettingsSheet({ data, onClose, update, ask }) {
+    const [target, setTarget] = useState(String(data.settings.target));
+    const [farm, setFarm] = useState(data.settings.farm);
+    const [msg, setMsg] = useState(null);
+    const fileRef = useRef(null);
+    const stamp = today().replace(/-/g, "");
+    const save = () => { update((d) => ({ ...d, settings: { ...d.settings, target: Number(target) || d.settings.target, farm: farm || d.settings.farm } })); onClose(); };
+    const reset = () => ask("すべての記録を消去して最初の状態に戻します。入力した内容は消えます。先にバックアップの書き出しをおすすめします。", () => { update(() => emptyData()); onClose(); });
+    const dl = (name, text, type, okMsg) => setMsg(download(name, text, type) ? okMsg : "書き出しに失敗しました。");
+    const onImport = (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f)
+            return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const obj = JSON.parse(reader.result);
+                if (!obj || !Array.isArray(obj.sales) || !Array.isArray(obj.customers) || !obj.settings) {
+                    setMsg("このファイルは復元できません（形式が違います）。");
+                    return;
+                }
+                ask("バックアップを読み込み、現在の記録を上書きします。よろしいですか？", () => {
+                    update(() => ({ settings: obj.settings, customers: obj.customers, sales: obj.sales, works: Array.isArray(obj.works) ? obj.works : [], reservations: Array.isArray(obj.reservations) ? obj.reservations : [] }));
+                    setMsg("バックアップを復元しました。");
+                });
+            }
+            catch {
+                setMsg("ファイルを読み込めませんでした。");
+            }
+            finally {
+                if (fileRef.current)
+                    fileRef.current.value = "";
+            }
+        };
+        reader.readAsText(f);
+    };
+    return (React.createElement(Sheet, { title: "\u8A2D\u5B9A", onClose: onClose },
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u5712\u306E\u540D\u524D"),
+            React.createElement("input", { className: "pf-input", value: farm, onChange: (e) => setFarm(e.target.value) })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u4ECA\u30B7\u30FC\u30BA\u30F3\u306E\u58F2\u4E0A\u76EE\u6A19 (\u5186)"),
+            React.createElement("input", { className: "pf-input", type: "number", inputMode: "numeric", value: target, onChange: (e) => setTarget(e.target.value) }),
+            React.createElement("div", { style: { fontSize: 11, color: "var(--soft)", marginTop: 6 } }, "1.5ha\u30FB\u6A19\u6E96\u30B7\u30CA\u30EA\u30AA\u306E\u76EE\u5B89\u306F\u7D041,900\u4E07\u5186\u3002\u3054\u81EA\u8EAB\u306E\u898F\u6A21\u306B\u5408\u308F\u305B\u3066\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002")),
+        React.createElement("button", { className: "pf-btn", onClick: save }, "\u4FDD\u5B58\u3059\u308B"),
+        React.createElement("div", { className: "pf-label", style: { marginTop: 22 } }, "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u30FB\u66F8\u304D\u51FA\u3057"),
+        React.createElement("div", { className: "pf-card", style: { padding: 14 } },
+            React.createElement("button", { className: "pf-btn ghost", onClick: () => dl(`peach-farm-backup-${stamp}.json`, JSON.stringify(data, null, 2), "application/json", "全データのJSONを書き出しました。") },
+                React.createElement(Download, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+                "\u5168\u30C7\u30FC\u30BF\u3092JSON\u3067\u66F8\u304D\u51FA\u3057\uFF08\u5FA9\u5143\u7528\uFF09"),
+            React.createElement("button", { className: "pf-btn ghost", style: { marginTop: 10 }, onClick: () => dl(`peach-farm-sales-${stamp}.csv`, salesToCsv(data), "text/csv;charset=utf-8", "販売CSVを書き出しました。") },
+                React.createElement(Receipt, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+                "\u8CA9\u58F2\u8A18\u9332\u3092CSV\u3067\u66F8\u304D\u51FA\u3057"),
+            React.createElement("button", { className: "pf-btn ghost", style: { marginTop: 10 }, onClick: () => dl(`peach-farm-works-${stamp}.csv`, worksToCsv(data), "text/csv;charset=utf-8", "作業・防除CSVを書き出しました。") },
+                React.createElement(Leaf, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+                "\u4F5C\u696D\u30FB\u9632\u9664\u5C65\u6B74\u3092CSV\u3067\u66F8\u304D\u51FA\u3057"),
+            React.createElement("button", { className: "pf-btn ghost", style: { marginTop: 10 }, onClick: () => dl(`peach-farm-reservations-${stamp}.csv`, resvToCsv(data), "text/csv;charset=utf-8", "予約CSVを書き出しました。") },
+                React.createElement(CalendarClock, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+                "\u5148\u884C\u4E88\u7D04\u3092CSV\u3067\u66F8\u304D\u51FA\u3057"),
+            React.createElement("button", { className: "pf-btn ghost", style: { marginTop: 10 }, onClick: () => fileRef.current && fileRef.current.click() },
+                React.createElement(Upload, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+                "JSON\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u304B\u3089\u5FA9\u5143"),
+            React.createElement("input", { ref: fileRef, type: "file", accept: "application/json,.json", style: { display: "none" }, onChange: onImport }),
+            msg && React.createElement("div", { style: { fontSize: 12, color: "var(--leaf)", marginTop: 10, fontWeight: 700 } }, msg),
+            React.createElement("div", { style: { fontSize: 11, color: "var(--soft)", marginTop: 10, lineHeight: 1.6 } }, "JSON\u306F\u5FA9\u5143\u7528\u306E\u5B8C\u5168\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3002CSV\u306F\u8CA9\u58F2\u30FB\u4F5C\u696D/\u9632\u9664\u30FB\u4E88\u7D04\u3092\u305D\u308C\u305E\u308C\u8868\u8A08\u7B97\u3084\u4F1A\u8A08\u30BD\u30D5\u30C8\u3067\u958B\u3051\u308B\u5F62\u5F0F\u3067\u3059\u3002\u30EA\u30BB\u30C3\u30C8\u3084\u7AEF\u672B\u8CB7\u3044\u66FF\u3048\u306E\u524D\u306B\u66F8\u304D\u51FA\u3057\u3066\u304A\u304F\u3068\u5B89\u5168\u3067\u3059\u3002")),
+        React.createElement("button", { className: "pf-btn ghost", style: { marginTop: 18, color: "var(--peach-deep)" }, onClick: reset },
+            React.createElement(RotateCcw, { size: 15, style: { verticalAlign: "-2px", marginRight: 6 } }),
+            "\u5168\u30C7\u30FC\u30BF\u3092\u6D88\u53BB\uFF08\u6700\u521D\u304B\u3089\uFF09")));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
+} catch (err) {
+  var r = document.getElementById('root');
+  if (r) r.innerHTML = '<div style="padding:28px;font-family:system-ui;color:#C75B43;font-size:14px;line-height:1.7">エラーが発生しました：<br>' + (err && err.message ? err.message : err) + '</div>';
+}
+</script>
+</body>
+</html>
