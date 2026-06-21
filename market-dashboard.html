@@ -137,6 +137,26 @@
   button.primary:hover{filter:brightness(1.06)}
   .modal a{color:var(--peach)}
   .empty{padding:22px 16px;color:var(--muted);font-size:13px;line-height:1.6}
+  /* ---------- technical analysis ---------- */
+  .panel.span{grid-column:1 / -1}
+  .ta-controls{display:flex;gap:10px;align-items:center;padding:12px 16px;flex-wrap:wrap}
+  .ta-controls select{background:#0f1622;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 11px;font-family:var(--mono);font-size:13px}
+  .ta-controls select:focus{outline:none;border-color:var(--peach)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{background:transparent;border:none;color:var(--muted);padding:8px 13px;font-size:12px;cursor:pointer;font-family:var(--sans);border-left:1px solid var(--line)}
+  .seg button:first-child{border-left:none}
+  .seg button.on{background:var(--peach-soft);color:var(--peach)}
+  .ta-chart-wrap{padding:4px 10px 0}
+  #ta-price{display:block;width:100%;height:300px}
+  #ta-macd{display:block;width:100%;height:118px;padding:0 10px}
+  .ta-readout{display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px 6px}
+  .chip{font-size:14px;font-family:var(--mono);font-weight:600;padding:7px 11px;border-radius:9px;background:#0f1622;border:1px solid var(--line);min-width:78px}
+  .chip b{display:block;font-size:9.5px;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:3px;font-family:var(--sans);text-transform:uppercase}
+  .chip .v{color:var(--text)}
+  .chip.up{border-color:rgba(255,77,94,.45)} .chip.up .v{color:var(--gain)}
+  .chip.down{border-color:rgba(54,198,176,.45)} .chip.down .v{color:var(--loss)}
+  .ta-note{font-size:11px;color:var(--muted);padding:6px 16px 16px}
+  .ta-empty{padding:22px 16px;color:var(--muted);font-size:13px;line-height:1.6}
   ::-webkit-scrollbar{width:10px}
   ::-webkit-scrollbar-thumb{background:#2b3850;border-radius:8px;border:3px solid var(--surface)}
 </style>
@@ -224,6 +244,30 @@
         </div>
       </section>
     </div>
+
+    <!-- TECHNICAL (full width) -->
+    <section class="panel span">
+      <div class="panel-head">
+        <h2>テクニカル分析</h2>
+        <span class="meta" id="ta-updated">—</span>
+      </div>
+      <div class="ta-controls">
+        <select id="ta-symbol"></select>
+        <div class="seg" id="ta-interval">
+          <button data-iv="5min">5分</button>
+          <button data-iv="15min">15分</button>
+          <button data-iv="1h">1時間</button>
+          <button data-iv="1day" class="on">日足</button>
+        </div>
+        <button class="ghost" id="ta-load">取得</button>
+      </div>
+      <div class="ta-chart-wrap"><canvas id="ta-price"></canvas></div>
+      <div class="ta-readout" id="ta-readout">
+        <div class="ta-empty">設定でTwelve Data APIキーを登録し、銘柄と足を選んで「取得」を押すと、EMA・ボリンジャー・VWAP・RSI・MACDを表示します。</div>
+      </div>
+      <canvas id="ta-macd"></canvas>
+      <div class="ta-note">指標は売買の指示ではなく、相場状況を読むための判断材料です。最終判断はご自身で。データ：Twelve Data（無料枠）。</div>
+    </section>
   </main>
 
   <!-- settings -->
@@ -232,8 +276,11 @@
       <h3>設定</h3>
       <p>株価とニュースの取得にはFinnhubの無料APIキーが必要です。キーはこのブラウザ内（localStorage）にのみ保存され、外部には送信されません。<br>
       取得：<a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>（無料・60回/分）</p>
-      <label for="key-input">Finnhub API キー</label>
+      <label for="key-input">Finnhub API キー（株価・ニュース）</label>
       <input id="key-input" placeholder="例: c0abc1...（無料キー）" autocomplete="off" />
+      <label for="td-input" style="margin-top:14px">Twelve Data API キー（テクニカル分析）</label>
+      <input id="td-input" placeholder="例: 1a2b3c...（無料キー）" autocomplete="off" />
+      <p style="margin:8px 0 0;font-size:12px">テクニカル分析の時系列データに使用。取得：<a href="https://twelvedata.com/register" target="_blank" rel="noopener">twelvedata.com/register</a>（無料・800回/日）</p>
       <div class="row">
         <button class="ghost" id="cancel-settings">閉じる</button>
         <button class="primary" id="save-settings">保存して更新</button>
@@ -250,6 +297,7 @@
    ============================================================ */
 const LS = {
   key:   'ydm_finnhub_key',
+  tdkey: 'ydm_twelvedata_key',
   watch: 'ydm_watchlist',
   memo:  'ydm_memo_',        // + YYYY-MM-DD
 };
@@ -267,6 +315,7 @@ function setStatus(el, state){ // state: ok | err | sample | off
   el.className = 'dot' + (state==='off' ? '' : ' '+state);
 }
 function getKey(){ return localStorage.getItem(LS.key) || ''; }
+function getTDKey(){ return localStorage.getItem(LS.tdkey) || ''; }
 
 /* ---------- clock (JST) ---------- */
 function tickClock(){
@@ -404,6 +453,7 @@ $('wl-add-btn').onclick = ()=>{
   if(!w.find(x=>x.sym===v)){ w.push({sym:v,name:''}); saveWatch(w); }
   $('wl-input').value='';
   loadWatchlist();
+  populateTASymbols();
 };
 $('wl-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('wl-add-btn').click(); });
 $('wl-body').addEventListener('click',e=>{
@@ -411,6 +461,7 @@ $('wl-body').addEventListener('click',e=>{
   if(!sym) return;
   saveWatch(getWatch().filter(x=>x.sym!==sym));
   loadWatchlist();
+  populateTASymbols();
 });
 
 /* ============================================================
@@ -465,13 +516,16 @@ function initMemo(){
 /* ============================================================
    Settings modal
    ============================================================ */
-$('open-settings').onclick=()=>{ $('key-input').value=getKey(); $('scrim').classList.add('open'); $('key-input').focus(); };
+$('open-settings').onclick=()=>{ $('key-input').value=getKey(); $('td-input').value=getTDKey(); $('scrim').classList.add('open'); $('key-input').focus(); };
 $('cancel-settings').onclick=()=>$('scrim').classList.remove('open');
 $('scrim').addEventListener('click',e=>{ if(e.target===$('scrim')) $('scrim').classList.remove('open'); });
 $('save-settings').onclick=()=>{
   localStorage.setItem(LS.key,$('key-input').value.trim());
+  localStorage.setItem(LS.tdkey,$('td-input').value.trim());
   $('scrim').classList.remove('open');
   refreshAll();
+  populateTASymbols();
+  loadTA();
 };
 
 /* ============================================================
@@ -480,8 +534,157 @@ $('save-settings').onclick=()=>{
 function refreshAll(){ loadFX(); loadWatchlist(); loadNews(); }
 $('refresh').onclick=refreshAll;
 
+/* ============================================================
+   Technical analysis（Twelve Data /time_series → 指標は自前計算）
+   ============================================================ */
+let taInterval = '1day';
+
+function populateTASymbols(){
+  const sel = $('ta-symbol'); if(!sel) return;
+  const prev = sel.value;
+  const opts = ['USD/JPY', ...getWatch().map(w=>w.sym)];
+  sel.innerHTML = opts.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(opts.includes(prev)) sel.value = prev;
+}
+
+/* --- indicator math --- */
+function sma(a,p){const o=Array(a.length).fill(null);for(let i=p-1;i<a.length;i++){let s=0;for(let j=i-p+1;j<=i;j++)s+=a[j];o[i]=s/p;}return o;}
+function ema(a,p){const o=Array(a.length).fill(null);const k=2/(p+1);let prev=null;for(let i=0;i<a.length;i++){if(i<p-1)continue;if(prev===null){let s=0;for(let j=0;j<p;j++)s+=a[i-p+1+j];prev=s/p;o[i]=prev;}else{prev=a[i]*k+prev*(1-k);o[i]=prev;}}return o;}
+function rsi(c,p=14){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];if(d>=0)g+=d;else l-=d;}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al);}return o;}
+function macd(c,f=12,s=26,sig=9){const ef=ema(c,f),es=ema(c,s);const line=c.map((_,i)=>(ef[i]!=null&&es[i]!=null)?ef[i]-es[i]:null);const fi=line.findIndex(v=>v!=null);const signal=Array(line.length).fill(null);if(fi>=0){const seg=line.slice(fi).map(v=>v==null?0:v);const ss=ema(seg,sig);for(let i=0;i<ss.length;i++)if(ss[i]!=null)signal[fi+i]=ss[i];}const hist=line.map((v,i)=>(v!=null&&signal[i]!=null)?v-signal[i]:null);return{line,signal,hist};}
+function boll(c,p=20,k=2){const m=sma(c,p),up=Array(c.length).fill(null),lo=Array(c.length).fill(null);for(let i=p-1;i<c.length;i++){let s=0;for(let j=i-p+1;j<=i;j++)s+=Math.pow(c[j]-m[i],2);const sd=Math.sqrt(s/p);up[i]=m[i]+k*sd;lo[i]=m[i]-k*sd;}return{mid:m,up,lo};}
+function vwapSession(bars){const o=Array(bars.length).fill(null);const lastDay=bars[bars.length-1].day;let pv=0,vv=0;for(let i=0;i<bars.length;i++){if(bars[i].day!==lastDay)continue;const tp=(bars[i].h+bars[i].l+bars[i].c)/3;pv+=tp*bars[i].v;vv+=bars[i].v;o[i]=vv>0?pv/vv:null;}return o;}
+
+/* --- canvas sizing for crisp rendering --- */
+function fitCanvas(cv,cssH){const dpr=window.devicePixelRatio||1;const w=cv.clientWidth||cv.parentElement.clientWidth;cv.width=w*dpr;cv.height=cssH*dpr;const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,W:w,H:cssH};}
+
+function taMsg(msg){ $('ta-readout').innerHTML = `<div class="ta-empty">${msg}</div>`; const p=$('ta-price'); if(p){const c=p.getContext('2d');c.clearRect(0,0,p.width,p.height);} const m=$('ta-macd'); if(m){const c=m.getContext('2d');c.clearRect(0,0,m.width,m.height);} }
+
+async function loadTA(){
+  const key=getTDKey();
+  if(!key){ taMsg('設定でTwelve Data APIキーを登録すると、テクニカル分析を表示します。'); return; }
+  const sym=$('ta-symbol').value;
+  if(!sym) return;
+  const url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(sym)}&interval=${taInterval}&outputsize=180&apikey=${key}`;
+  $('ta-updated').textContent='取得中…';
+  try{
+    const r=await fetch(url);
+    const j=await r.json();
+    if(j.status==='error' || !j.values) throw new Error(j.message || 'データ取得失敗');
+    const bars=j.values.slice().reverse().map(v=>({
+      t:v.datetime, o:+v.open, h:+v.high, l:+v.low, c:+v.close,
+      v:v.volume?+v.volume:0, day:v.datetime.slice(0,10)
+    }));
+    renderTA(bars,sym);
+    $('ta-updated').textContent=new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    taMsg('取得できませんでした（'+escapeHTML(e.message)+'）。キーの確認、または無料枠の上限（800回/日・8回/分）に達していないか確認してください。');
+    $('ta-updated').textContent='取得失敗';
+    console.warn('TA',e);
+  }
+}
+
+function renderTA(bars,sym){
+  const closes=bars.map(b=>b.c);
+  const e9=ema(closes,9), e21=ema(closes,21);
+  const r=rsi(closes,14), m=macd(closes), bb=boll(closes,20,2);
+  const intraday = taInterval!=='1day';
+  const hasVol = bars.some(b=>b.v>0);
+  const vw = (intraday && hasVol) ? vwapSession(bars) : null;
+
+  drawPrice(bars,{e9,e21,bb,vw});
+  drawMACD(bars,m);
+  buildReadout(closes,{e9,e21,r,m,bb,vw,sym,intraday,hasVol});
+}
+
+function drawPrice(bars,ind){
+  const N=Math.min(bars.length,70);
+  const view=bars.slice(-N);
+  const off=bars.length-N;
+  const {ctx,W,H}=fitCanvas($('ta-price'),300);
+  ctx.clearRect(0,0,W,H);
+  const padT=10,padB=18,padL=6,padR=54;
+  let hi=-Infinity,lo=Infinity;
+  view.forEach(b=>{hi=Math.max(hi,b.h);lo=Math.min(lo,b.l);});
+  [ind.bb.up,ind.bb.lo].forEach(arr=>{for(let i=off;i<bars.length;i++){if(arr[i]!=null){hi=Math.max(hi,arr[i]);lo=Math.min(lo,arr[i]);}}});
+  const span=(hi-lo)||1; const pad=span*0.06; hi+=pad; lo-=pad;
+  const X=i=>padL+i*(W-padL-padR)/(N-1);
+  const Y=v=>padT+(hi-v)/(hi-lo)*(H-padT-padB);
+  // grid + right price labels
+  ctx.strokeStyle='rgba(39,50,69,.6)';ctx.fillStyle='#8A97A8';ctx.font='10px ui-monospace,monospace';ctx.textAlign='left';
+  for(let g=0;g<=4;g++){const v=hi-(hi-lo)*g/4;const y=Y(v);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();ctx.fillText(v.toFixed(3),W-padR+5,y+3);}
+  // bollinger band fill
+  const upPts=[],loPts=[];
+  for(let k=0;k<N;k++){const i=off+k;if(ind.bb.up[i]!=null){upPts.push([X(k),Y(ind.bb.up[i])]);loPts.push([X(k),Y(ind.bb.lo[i])]);}}
+  if(upPts.length){ctx.beginPath();ctx.moveTo(upPts[0][0],upPts[0][1]);upPts.forEach(p=>ctx.lineTo(p[0],p[1]));for(let k=loPts.length-1;k>=0;k--)ctx.lineTo(loPts[k][0],loPts[k][1]);ctx.closePath();ctx.fillStyle='rgba(138,151,168,.07)';ctx.fill();
+    drawLine(ctx,ind.bb.up,off,N,X,Y,'rgba(138,151,168,.35)',1);
+    drawLine(ctx,ind.bb.lo,off,N,X,Y,'rgba(138,151,168,.35)',1);}
+  // candles (JP: up=red, down=teal)
+  const cw=Math.max(2,(W-padL-padR)/N*0.6);
+  view.forEach((b,k)=>{const x=X(k);const up=b.c>=b.o;const col=up?'#FF4D5E':'#36C6B0';ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,Y(b.h));ctx.lineTo(x,Y(b.l));ctx.stroke();
+    const yo=Y(b.o),yc=Y(b.c);ctx.fillRect(x-cw/2,Math.min(yo,yc),cw,Math.max(1,Math.abs(yc-yo)));});
+  // EMAs + VWAP
+  drawLine(ctx,ind.e9,off,N,X,Y,'#F4A259',1.6);
+  drawLine(ctx,ind.e21,off,N,X,Y,'#6FA8FF',1.6);
+  if(ind.vw) drawLine(ctx,ind.vw,off,N,X,Y,'#E8ECF2',1.4,true);
+}
+function drawLine(ctx,arr,off,N,X,Y,color,lw,dash){
+  ctx.beginPath();let started=false;for(let k=0;k<N;k++){const v=arr[off+k];if(v==null){started=false;continue;}const x=X(k),y=Y(v);if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);}
+  ctx.lineWidth=lw;ctx.strokeStyle=color;if(dash)ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+}
+function drawMACD(bars,m){
+  const N=Math.min(bars.length,70),off=bars.length-N;
+  const {ctx,W,H}=fitCanvas($('ta-macd'),118);
+  ctx.clearRect(0,0,W,H);
+  const padR=54,padL=6,padT=8,padB=8;
+  let mx=0;for(let i=off;i<bars.length;i++){[m.line[i],m.signal[i],m.hist[i]].forEach(v=>{if(v!=null)mx=Math.max(mx,Math.abs(v));});}
+  mx=mx||1;const X=i=>padL+i*(W-padL-padR)/(N-1);const Y=v=>padT+(mx-v)/(2*mx)*(H-padT-padB);
+  ctx.strokeStyle='rgba(39,50,69,.6)';ctx.beginPath();ctx.moveTo(padL,Y(0));ctx.lineTo(W-padR,Y(0));ctx.stroke();
+  ctx.fillStyle='#8A97A8';ctx.font='9px ui-monospace,monospace';ctx.fillText('MACD',W-padR+5,Y(0)+3);
+  const bw=Math.max(2,(W-padL-padR)/N*0.6);
+  for(let k=0;k<N;k++){const v=m.hist[off+k];if(v==null)continue;const x=X(k);ctx.fillStyle=v>=0?'rgba(255,77,94,.55)':'rgba(54,198,176,.55)';const y0=Y(0),y1=Y(v);ctx.fillRect(x-bw/2,Math.min(y0,y1),bw,Math.abs(y1-y0)||1);}
+  drawLine(ctx,m.line,off,N,X,Y,'#F4A259',1.4);
+  drawLine(ctx,m.signal,off,N,X,Y,'#6FA8FF',1.4);
+}
+function buildReadout(closes,d){
+  const last=closes[closes.length-1];
+  const li=closes.length-1;
+  const chips=[];
+  chips.push(chip('現在値', fmt(last,3), 'flat'));
+  // EMA trend
+  if(d.e9[li]!=null&&d.e21[li]!=null){const bull=d.e9[li]>d.e21[li];chips.push(chip('EMA 9/21', bull?'上昇':'下降', bull?'up':'down'));}
+  // RSI
+  if(d.r[li]!=null){const rv=d.r[li];const st=rv>=70?'買われすぎ':(rv<=30?'売られすぎ':'中立');const cls=rv>=70?'up':(rv<=30?'down':'flat');chips.push(chip('RSI(14)', rv.toFixed(1)+' '+st, cls));}
+  // MACD
+  if(d.m.hist[li]!=null){const h=d.m.hist[li];const prev=d.m.hist[li-1];let txt=h>=0?'強気':'弱気';if(prev!=null&&Math.sign(h)!==Math.sign(prev))txt=h>0?'GC直後':'DC直後';chips.push(chip('MACD', txt, h>=0?'up':'down'));}
+  // Bollinger position
+  if(d.bb.up[li]!=null){let pos='バンド内',cls='flat';if(last>=d.bb.up[li]){pos='上限超え';cls='up';}else if(last<=d.bb.lo[li]){pos='下限割れ';cls='down';}chips.push(chip('ボリンジャー', pos, cls));}
+  // VWAP
+  if(d.vw){let vi=li;while(vi>=0&&d.vw[vi]==null)vi--;if(vi>=0){const above=last>=d.vw[vi];chips.push(chip('VWAP', (above?'上 ':'下 ')+d.vw[vi].toFixed(3), above?'up':'down'));}}
+  else if(d.intraday && !d.hasVol){chips.push(chip('VWAP', '出来高なし', 'flat'));}
+  $('ta-readout').innerHTML = chips.join('');
+}
+function chip(label,val,cls){return `<div class="chip ${cls}"><b>${label}</b><span class="v">${val}</span></div>`;}
+
+/* TA controls */
+$('ta-interval').addEventListener('click',e=>{
+  const iv=e.target.getAttribute('data-iv'); if(!iv)return;
+  taInterval=iv;
+  [...$('ta-interval').children].forEach(b=>b.classList.toggle('on',b===e.target));
+  loadTA();
+});
+$('ta-symbol').addEventListener('change',loadTA);
+$('ta-load').onclick=loadTA;
+window.addEventListener('resize',()=>{ clearTimeout(window._taRz); window._taRz=setTimeout(loadTA,300); });
+
+/* ============================================================
+   Orchestration
+   ============================================================ */
 initMemo();
 refreshAll();
+populateTASymbols();
+loadTA();
 setInterval(loadFX, 30000);          // FXは30秒ごとにポーリング
 setInterval(()=>{ loadWatchlist(); loadNews(); }, 180000); // 株価・ニュースは3分ごと
 </script>
