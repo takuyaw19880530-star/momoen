@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>夜明けの市況 — 資産運用ダッシュボード</title>
+<style>
+  :root{
+    --bg:#0E1420;          /* before-dawn ink navy */
+    --surface:#18202E;     /* panels */
+    --surface-2:#1F2A3A;   /* raised */
+    --line:#273245;        /* hairline */
+    --text:#E8ECF2;
+    --muted:#8A97A8;
+    --gain:#FF4D5E;        /* JP: up = red */
+    --loss:#36C6B0;        /* JP: down = teal */
+    --peach:#F4A259;       /* orchard accent, used sparingly */
+    --peach-soft:rgba(244,162,89,.14);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",YuGothic,"Noto Sans JP",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+    padding:0 0 64px;
+  }
+  /* ---------- header ---------- */
+  header{
+    padding:18px 22px 0;display:flex;align-items:flex-end;
+    justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px}
+  .eyebrow{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;
+  }
+  .brand h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.01em}
+  .clock{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .head-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .status-wrap{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+  .status{display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#465468;flex:none}
+  .dot.ok{background:var(--loss);box-shadow:0 0 0 3px rgba(54,198,176,.15)}
+  .dot.err{background:var(--gain);box-shadow:0 0 0 3px rgba(255,77,94,.15)}
+  .dot.sample{background:var(--peach);box-shadow:0 0 0 3px var(--peach-soft)}
+  button.ghost{
+    background:transparent;border:1px solid var(--line);color:var(--text);
+    padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;
+    font-family:var(--sans);transition:border-color .15s,background .15s;
+  }
+  button.ghost:hover{border-color:var(--peach);background:var(--peach-soft)}
+  /* dawn signature line */
+  .dawn{
+    height:2px;margin:16px 22px 0;border-radius:2px;
+    background:linear-gradient(90deg,#1b2433 0%,#3a3247 38%,var(--peach) 78%,#ffd9a8 100%);
+    opacity:.85;
+  }
+  /* ---------- layout ---------- */
+  main{
+    max-width:1180px;margin:22px auto 0;padding:0 22px;
+    display:grid;grid-template-columns:1.35fr .95fr;gap:18px;align-items:start;
+  }
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:18px}
+  .panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 16px;border-bottom:1px solid var(--line);
+  }
+  .panel-head h2{margin:0;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .panel-head .meta{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  /* ---------- USDJPY hero ---------- */
+  .fx{padding:18px 18px 8px}
+  .fx-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .fx-pair{font-size:13px;color:var(--muted);letter-spacing:.08em}
+  .fx-rate{font-family:var(--mono);font-size:46px;font-weight:600;letter-spacing:-.01em;line-height:1}
+  .fx-change{font-family:var(--mono);font-size:15px;font-weight:600;padding:3px 9px;border-radius:7px}
+  .up{color:var(--gain);background:rgba(255,77,94,.10)}
+  .down{color:var(--loss);background:rgba(54,198,176,.10)}
+  .flat{color:var(--muted);background:#0f1622}
+  .fx-sub{display:flex;gap:18px;margin-top:10px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .fx-sub b{color:var(--text);font-weight:600}
+  #spark{display:block;width:100%;height:96px;margin-top:8px}
+  .fx-note{font-size:11px;color:var(--muted);padding:0 18px 14px}
+  /* ---------- watchlist ---------- */
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:right;padding:11px 16px;font-size:14px;border-bottom:1px solid var(--line)}
+  th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  th:first-child,td:first-child{text-align:left}
+  tbody tr:last-child td{border-bottom:none}
+  td.sym{font-weight:600}
+  td.sym small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:1px}
+  td.num{font-family:var(--mono)}
+  .chg{font-family:var(--mono);font-weight:600}
+  .wl-add{display:flex;gap:8px;padding:12px 16px}
+  .wl-add input{
+    flex:1;background:#0f1622;border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:8px 11px;font-family:var(--mono);font-size:13px;
+  }
+  .wl-add input:focus{outline:none;border-color:var(--peach)}
+  .x{color:var(--muted);cursor:pointer;font-family:var(--sans);padding-left:8px}
+  .x:hover{color:var(--gain)}
+  /* ---------- news ---------- */
+  .news-list{max-height:560px;overflow:auto}
+  .news-item{display:block;padding:13px 16px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;border-left:2px solid transparent}
+  .news-item:last-child{border-bottom:none}
+  .news-item:hover{background:var(--surface-2)}
+  .news-item.pos{border-left-color:var(--gain)}
+  .news-item.neg{border-left-color:var(--loss)}
+  .news-meta{display:flex;gap:10px;font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:4px}
+  .news-head{font-size:13.5px;line-height:1.4}
+  /* ---------- memo ---------- */
+  .memo-body{padding:14px 16px}
+  .memo-body textarea{
+    width:100%;min-height:120px;resize:vertical;background:#0f1622;
+    border:1px solid var(--line);border-radius:10px;color:var(--text);
+    padding:12px;font-family:var(--sans);font-size:14px;line-height:1.6;
+  }
+  .memo-body textarea:focus{outline:none;border-color:var(--peach)}
+  .memo-foot{font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+  /* ---------- settings modal ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(6,9,15,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .scrim.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:16px;max-width:440px;width:100%;padding:22px}
+  .modal h3{margin:0 0 4px;font-size:17px}
+  .modal p{margin:0 0 16px;font-size:13px;color:var(--muted);line-height:1.6}
+  .modal label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;letter-spacing:.04em}
+  .modal input{width:100%;background:#0f1622;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 12px;font-family:var(--mono);font-size:13px}
+  .modal input:focus{outline:none;border-color:var(--peach)}
+  .modal .row{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+  button.primary{background:var(--peach);border:none;color:#1b1206;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;font-size:13px;font-family:var(--sans)}
+  button.primary:hover{filter:brightness(1.06)}
+  .modal a{color:var(--peach)}
+  .empty{padding:22px 16px;color:var(--muted);font-size:13px;line-height:1.6}
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-thumb{background:#2b3850;border-radius:8px;border:3px solid var(--surface)}
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="eyebrow">Morning Market Briefing</span>
+      <h1>夜明けの市況</h1>
+      <span class="clock" id="clock">—</span>
+    </div>
+    <div class="head-right">
+      <div class="status-wrap">
+        <span class="status"><span class="dot" id="st-fx"></span>為替</span>
+        <span class="status"><span class="dot" id="st-stk"></span>株価</span>
+        <span class="status"><span class="dot" id="st-news"></span>ニュース</span>
+      </div>
+      <button class="ghost" id="refresh">更新</button>
+      <button class="ghost" id="open-settings">設定</button>
+    </div>
+  </header>
+  <div class="dawn"></div>
+
+  <main>
+    <!-- LEFT -->
+    <div class="col">
+      <!-- USD/JPY hero -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>米ドル / 円</h2>
+          <span class="meta" id="fx-updated">—</span>
+        </div>
+        <div class="fx">
+          <div class="fx-top">
+            <span class="fx-pair">USD/JPY · スポット</span>
+            <span class="fx-change flat" id="fx-change">—</span>
+          </div>
+          <div class="fx-rate" id="fx-rate">—</div>
+          <div class="fx-sub">
+            <span>セッション高 <b id="fx-hi">—</b></span>
+            <span>セッション安 <b id="fx-lo">—</b></span>
+          </div>
+          <canvas id="spark" width="700" height="96"></canvas>
+        </div>
+        <div class="fx-note">本日のセッション推移（このページを開いてからの実測値）。過去ローソク足は第2段で追加予定。</div>
+      </section>
+
+      <!-- Watchlist -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>ウォッチリスト</h2>
+          <span class="meta">前日比</span>
+        </div>
+        <table>
+          <thead><tr><th>銘柄</th><th>現在値</th><th>騰落率</th><th></th></tr></thead>
+          <tbody id="wl-body"></tbody>
+        </table>
+        <div class="wl-add">
+          <input id="wl-input" placeholder="ティッカーを追加（例: AAPL, NVDA, SPY）" />
+          <button class="ghost" id="wl-add-btn">追加</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="col">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>世界の市況ニュース</h2>
+          <span class="meta" id="news-updated">—</span>
+        </div>
+        <div class="news-list" id="news-list">
+          <div class="empty">設定からFinnhub APIキーを登録すると、世界の市況ニュースが表示されます。</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>本日のシナリオメモ</h2>
+          <span class="meta" id="memo-date">—</span>
+        </div>
+        <div class="memo-body">
+          <textarea id="memo" placeholder="今日の見立て・注目イベント・損益への影響などを書き留める。&#10;（日付ごとに自動保存）"></textarea>
+          <div class="memo-foot" id="memo-status">自動保存</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- settings -->
+  <div class="scrim" id="scrim">
+    <div class="modal">
+      <h3>設定</h3>
+      <p>株価とニュースの取得にはFinnhubの無料APIキーが必要です。キーはこのブラウザ内（localStorage）にのみ保存され、外部には送信されません。<br>
+      取得：<a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>（無料・60回/分）</p>
+      <label for="key-input">Finnhub API キー</label>
+      <input id="key-input" placeholder="例: c0abc1...（無料キー）" autocomplete="off" />
+      <div class="row">
+        <button class="ghost" id="cancel-settings">閉じる</button>
+        <button class="primary" id="save-settings">保存して更新</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+/* ============================================================
+   夜明けの市況 — 自己完結ダッシュボード（外部ライブラリなし）
+   データ層: FX=open.er-api.com（キー不要） / 株価・ニュース=Finnhub
+   すべて GET・トークンはURL付与・カスタムヘッダーなし → ブラウザ直叩き可
+   ============================================================ */
+const LS = {
+  key:   'ydm_finnhub_key',
+  watch: 'ydm_watchlist',
+  memo:  'ydm_memo_',        // + YYYY-MM-DD
+};
+const DEFAULT_WATCH = [
+  {sym:'SPY',  name:'S&P500 ETF'},
+  {sym:'QQQ',  name:'NASDAQ100 ETF'},
+  {sym:'NVDA', name:'エヌビディア'},
+  {sym:'AAPL', name:'アップル'},
+  {sym:'EWJ',  name:'日本株 ETF'},
+];
+
+const $ = id => document.getElementById(id);
+const fmt = (n,d=2)=> (n==null||isNaN(n))?'—':Number(n).toLocaleString('ja-JP',{minimumFractionDigits:d,maximumFractionDigits:d});
+function setStatus(el, state){ // state: ok | err | sample | off
+  el.className = 'dot' + (state==='off' ? '' : ' '+state);
+}
+function getKey(){ return localStorage.getItem(LS.key) || ''; }
+
+/* ---------- clock (JST) ---------- */
+function tickClock(){
+  const now = new Date();
+  const jst = now.toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',weekday:'short',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  $('clock').textContent = jst + ' JST';
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ============================================================
+   FX : USD/JPY spot（キー不要）
+   ============================================================ */
+let fxSession = [];      // 実測セッション系列
+let fxPrev = null;       // 前回値（変化方向用）
+let fxFirst = null;      // セッション始値
+
+async function loadFX(){
+  try{
+    const r = await fetch('https://open.er-api.com/v6/latest/USD');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    const rate = j && j.rates && j.rates.JPY;
+    if(!rate) throw new Error('JPYレートなし');
+    renderFX(rate);
+    setStatus($('st-fx'),'ok');
+    $('fx-updated').textContent = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    setStatus($('st-fx'),'err');
+    $('fx-updated').textContent = '取得失敗';
+    if(fxSession.length===0){
+      $('fx-rate').textContent = '接続できません';
+      $('fx-rate').style.fontSize = '20px';
+    }
+    console.warn('FX error:', e);
+  }
+}
+function renderFX(rate){
+  if(fxFirst===null) fxFirst = rate;
+  fxSession.push(rate);
+  if(fxSession.length>240) fxSession.shift();
+
+  $('fx-rate').style.fontSize='';
+  $('fx-rate').textContent = fmt(rate,3);
+
+  const diff = rate - fxFirst;
+  const pct = fxFirst ? diff/fxFirst*100 : 0;
+  const el = $('fx-change');
+  const cls = diff>0?'up':(diff<0?'down':'flat');
+  el.className = 'fx-change '+cls;
+  const arrow = diff>0?'▲':(diff<0?'▼':'—');
+  el.textContent = `${arrow} ${fmt(Math.abs(diff),3)} (${fmt(Math.abs(pct),2)}%)`;
+
+  $('fx-hi').textContent = fmt(Math.max(...fxSession),3);
+  $('fx-lo').textContent = fmt(Math.min(...fxSession),3);
+  drawSpark();
+}
+function drawSpark(){
+  const c = $('spark'); const ctx = c.getContext('2d');
+  const W = c.width, H = c.height, pad = 6;
+  ctx.clearRect(0,0,W,H);
+  if(fxSession.length<2) return;
+  const min = Math.min(...fxSession), max = Math.max(...fxSession);
+  const span = (max-min)||1;
+  const X = i => pad + i*(W-2*pad)/(fxSession.length-1);
+  const Y = v => H-pad - (v-min)/span*(H-2*pad);
+  const rising = fxSession[fxSession.length-1] >= fxFirst;
+  const color = rising ? '#FF4D5E' : '#36C6B0';
+  // area
+  ctx.beginPath(); ctx.moveTo(X(0),Y(fxSession[0]));
+  fxSession.forEach((v,i)=>ctx.lineTo(X(i),Y(v)));
+  ctx.lineTo(X(fxSession.length-1),H); ctx.lineTo(X(0),H); ctx.closePath();
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, rising?'rgba(255,77,94,.22)':'rgba(54,198,176,.22)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fill();
+  // line
+  ctx.beginPath(); ctx.moveTo(X(0),Y(fxSession[0]));
+  fxSession.forEach((v,i)=>ctx.lineTo(X(i),Y(v)));
+  ctx.lineWidth=2; ctx.strokeStyle=color; ctx.stroke();
+}
+
+/* ============================================================
+   Watchlist : Finnhub /quote
+   ============================================================ */
+function getWatch(){
+  try{ const w = JSON.parse(localStorage.getItem(LS.watch)); if(Array.isArray(w)&&w.length) return w; }catch(e){}
+  return DEFAULT_WATCH.slice();
+}
+function saveWatch(w){ localStorage.setItem(LS.watch, JSON.stringify(w)); }
+
+async function loadWatchlist(){
+  const key = getKey();
+  const w = getWatch();
+  const tbody = $('wl-body');
+  if(!key){
+    setStatus($('st-stk'),'off');
+    tbody.innerHTML = `<tr><td colspan="4" class="empty" style="text-align:left">設定からFinnhub APIキーを登録すると現在値を取得します。</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = w.map(it=>rowHTML(it,null)).join('');
+  let anyErr=false, anyOk=false;
+  for(const it of w){
+    try{
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(it.sym)}&token=${key}`);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json();
+      if(j.c===0 && j.pc===0){ throw new Error('データなし'); }
+      updateRow(it.sym, j.c, j.dp); anyOk=true;
+    }catch(e){ updateRow(it.sym, null, null, true); anyErr=true; console.warn('quote',it.sym,e); }
+  }
+  setStatus($('st-stk'), anyOk ? (anyErr?'sample':'ok') : 'err');
+}
+function rowHTML(it){
+  return `<tr data-sym="${it.sym}">
+    <td class="sym">${it.sym}<small>${it.name||''}</small></td>
+    <td class="num" data-price>—</td>
+    <td class="chg" data-chg>—</td>
+    <td><span class="x" data-del="${it.sym}">✕</span></td></tr>`;
+}
+function updateRow(sym, price, dp, err){
+  const tr = document.querySelector(`tr[data-sym="${CSS.escape(sym)}"]`);
+  if(!tr) return;
+  const p = tr.querySelector('[data-price]'), c = tr.querySelector('[data-chg]');
+  if(err){ p.textContent='取得失敗'; c.textContent='—'; c.className='chg flat'; return; }
+  p.textContent = fmt(price,2);
+  const cls = dp>0?'up':(dp<0?'down':'flat');
+  const arrow = dp>0?'▲':(dp<0?'▼':'—');
+  c.className = 'chg '+cls;
+  c.textContent = `${arrow} ${fmt(Math.abs(dp),2)}%`;
+}
+$('wl-add-btn').onclick = ()=>{
+  const v = $('wl-input').value.trim().toUpperCase();
+  if(!v) return;
+  const w = getWatch();
+  if(!w.find(x=>x.sym===v)){ w.push({sym:v,name:''}); saveWatch(w); }
+  $('wl-input').value='';
+  loadWatchlist();
+};
+$('wl-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('wl-add-btn').click(); });
+$('wl-body').addEventListener('click',e=>{
+  const sym = e.target.getAttribute('data-del');
+  if(!sym) return;
+  saveWatch(getWatch().filter(x=>x.sym!==sym));
+  loadWatchlist();
+});
+
+/* ============================================================
+   News : Finnhub /news?category=general
+   ============================================================ */
+async function loadNews(){
+  const key = getKey();
+  const list = $('news-list');
+  if(!key){ setStatus($('st-news'),'off'); return; }
+  try{
+    const r = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${key}`);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    if(!Array.isArray(j)||!j.length) throw new Error('記事なし');
+    list.innerHTML = j.slice(0,25).map(n=>{
+      const t = new Date(n.datetime*1000).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<a class="news-item" href="${n.url}" target="_blank" rel="noopener">
+        <div class="news-meta"><span>${(n.source||'').slice(0,22)}</span><span>${t}</span></div>
+        <div class="news-head">${escapeHTML(n.headline||'')}</div></a>`;
+    }).join('');
+    setStatus($('st-news'),'ok');
+    $('news-updated').textContent = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    setStatus($('st-news'),'err');
+    list.innerHTML = `<div class="empty">ニュースを取得できませんでした（${escapeHTML(e.message)}）。キーが正しいか、通信がブロックされていないか確認してください。</div>`;
+    console.warn('news',e);
+  }
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ============================================================
+   Memo（日付ごとにlocalStorage保存）
+   ============================================================ */
+function todayKey(){
+  return new Date().toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+}
+function initMemo(){
+  const d = todayKey();
+  $('memo-date').textContent = d;
+  $('memo').value = localStorage.getItem(LS.memo+d) || '';
+  let timer=null;
+  $('memo').addEventListener('input',()=>{
+    $('memo-status').textContent='入力中…';
+    clearTimeout(timer);
+    timer=setTimeout(()=>{
+      localStorage.setItem(LS.memo+d,$('memo').value);
+      $('memo-status').textContent='保存しました '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    },500);
+  });
+}
+
+/* ============================================================
+   Settings modal
+   ============================================================ */
+$('open-settings').onclick=()=>{ $('key-input').value=getKey(); $('scrim').classList.add('open'); $('key-input').focus(); };
+$('cancel-settings').onclick=()=>$('scrim').classList.remove('open');
+$('scrim').addEventListener('click',e=>{ if(e.target===$('scrim')) $('scrim').classList.remove('open'); });
+$('save-settings').onclick=()=>{
+  localStorage.setItem(LS.key,$('key-input').value.trim());
+  $('scrim').classList.remove('open');
+  refreshAll();
+};
+
+/* ============================================================
+   Orchestration
+   ============================================================ */
+function refreshAll(){ loadFX(); loadWatchlist(); loadNews(); }
+$('refresh').onclick=refreshAll;
+
+initMemo();
+refreshAll();
+setInterval(loadFX, 30000);          // FXは30秒ごとにポーリング
+setInterval(()=>{ loadWatchlist(); loadNews(); }, 180000); // 株価・ニュースは3分ごと
+</script>
+</body>
+</html>
