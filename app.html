@@ -17172,9 +17172,7 @@ exports.hydrateRoot = function (container, initialChildren, options) {
 exports.version = "19.2.5";
 
 };
-window.React=require('react');
-window.ReactDOM=require('react-dom/client');
-})();
+window.React=require('react');window.ReactDOM=require('react-dom/client');})();
 </script>
 <script>window.lucide = { icons: {
   Home: [["path",{d:"M3 11l9-7 9 7v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"}]],
@@ -17244,7 +17242,7 @@ window.storage = {
     catch (e) { } },
 };
 function emptyData() {
-    return { settings: { target: 19000000, farm: "わたしの桃園" }, customers: [], sales: [], works: [], reservations: [] };
+    return { settings: { target: 19000000, farm: "わたしの桃園" }, customers: [], plots: [], sales: [], works: [], reservations: [] };
 }
 /* ───────────────────────── design tokens ───────────────────────── */
 const CSS = `
@@ -17491,6 +17489,13 @@ function seed() {
         C("中村様", "ec", "浅間白桃を希望", false),
         C("小林様", "gift", "晩生（川中島）を希望", false),
     ];
+    const plots = [
+        { id: uid(), name: "東の畑", area: "40a", note: "白鳳・日川中心" },
+        { id: uid(), name: "西の畑", area: "30a", note: "" },
+        { id: uid(), name: "川沿い", area: "25a", note: "水はけ注意" },
+        { id: uid(), name: "ジョイント試験区", area: "15a", note: "省力樹形の試験" },
+    ];
+    const plotId = (nm) => (plots.find((p) => p.name === nm) || {}).id || null;
     const giftCust = [0, 3, 5], ecCust = [1, 2, 4, 6];
     const varietyFor = (m) => (m <= 6 ? "日川白鳳" : m === 7 ? "白鳳" : m === 8 ? "浅間白桃" : "川中島白桃");
     const pattern = [
@@ -17526,20 +17531,22 @@ function seed() {
         });
         return out;
     };
-    const sales = [...makeSeason(2024, 0.9), ...makeSeason(2025, 1.0), ...makeSeason(2026, 1.15)];
+    const sales = [...makeSeason(2024, 0.9), ...makeSeason(2025, 1.0), ...makeSeason(2026, 1.15)]
+        .map((s, i) => (s.channel === "kako" ? s : { ...s, plotId: plots[i % 3].id, plotName: plots[i % 3].name }));
     const curTotal = sales.filter((s) => yr(s.date) === 2026).reduce((a, s) => a + s.amount, 0);
     const target = Math.round(curTotal / 0.4 / 100000) * 100000;
     const id = (n) => cs[n].id;
     return {
         settings: { target, farm: "南アルプス桃園" },
         customers: cs,
+        plots,
         sales,
         works: [
-            { id: uid(), date: "2026-06-20", type: "fukurokake", block: "東の畑", hours: 4, kg: 0, agent: "", note: "白鳳の仕上げ袋掛け" },
-            { id: uid(), date: "2026-06-18", type: "bojo", block: "全圃場", hours: 2, kg: 0, agent: "殺菌剤A・展着剤", note: "ドローン防除" },
-            { id: uid(), date: "2026-06-15", type: "tekika", block: "川沿い", hours: 5, kg: 0, agent: "", note: "仕上げ摘果" },
-            { id: uid(), date: "2026-06-12", type: "kansui", block: "ジョイント試験区", hours: 0, kg: 0, agent: "", note: "自動灌水・センサー確認" },
-            { id: uid(), date: "2026-07-10", type: "kanju", block: "東の畑", hours: 6, kg: 120, agent: "", note: "日川白鳳 初収穫" },
+            { id: uid(), date: "2026-06-20", type: "fukurokake", block: "東の畑", plotId: plotId("東の畑"), hours: 4, kg: 0, agent: "", note: "白鳳の仕上げ袋掛け" },
+            { id: uid(), date: "2026-06-18", type: "bojo", block: "全圃場", plotId: null, hours: 2, kg: 0, agent: "殺菌剤A・展着剤", note: "ドローン防除" },
+            { id: uid(), date: "2026-06-15", type: "tekika", block: "川沿い", plotId: plotId("川沿い"), hours: 5, kg: 0, agent: "", note: "仕上げ摘果" },
+            { id: uid(), date: "2026-06-12", type: "kansui", block: "ジョイント試験区", plotId: plotId("ジョイント試験区"), hours: 0, kg: 0, agent: "", note: "自動灌水・センサー確認" },
+            { id: uid(), date: "2026-07-10", type: "kanju", block: "東の畑", plotId: plotId("東の畑"), hours: 6, kg: 120, agent: "", note: "日川白鳳 初収穫" },
         ],
         reservations: [
             { id: uid(), customerId: id(1), label: "鈴木様", channel: "ec", variety: "白鳳", kg: 4, amount: 9600, paid: true, deliveryDate: "2026-07-28", note: "定期便" },
@@ -17559,7 +17566,12 @@ function App() {
         (async () => {
             try {
                 const r = await window.storage.get(STORE_KEY);
-                setData(r && r.value ? JSON.parse(r.value) : emptyData());
+                const d = r && r.value ? JSON.parse(r.value) : emptyData();
+                ["plots", "sales", "works", "customers", "reservations"].forEach((k) => { if (!Array.isArray(d[k]))
+                    d[k] = []; });
+                if (!d.settings)
+                    d.settings = { target: 19000000, farm: "わたしの桃園" };
+                setData(d);
             }
             catch {
                 const s = emptyData();
@@ -17619,8 +17631,8 @@ function App() {
             React.createElement("span", { className: "pf-tabic" },
                 React.createElement(I, { size: 20 })),
             l)))),
-        sheet === "sale" && React.createElement(SaleSheet, { customers: data.customers, onClose: () => setSheet(null), update: update }),
-        sheet === "work" && React.createElement(WorkSheet, { onClose: () => setSheet(null), update: update }),
+        sheet === "sale" && React.createElement(SaleSheet, { customers: data.customers, plots: data.plots, onClose: () => setSheet(null), update: update }),
+        sheet === "work" && React.createElement(WorkSheet, { plots: data.plots, onClose: () => setSheet(null), update: update }),
         sheet === "customer" && React.createElement(CustomerSheet, { onClose: () => setSheet(null), update: update }),
         sheet === "reservation" && React.createElement(ResvSheet, { customers: data.customers, onClose: () => setSheet(null), update: update }),
         sheet === "settings" && React.createElement(SettingsSheet, { data: data, onClose: () => setSheet(null), update: update, ask: ask }),
@@ -17902,10 +17914,47 @@ function TrendView({ data }) {
 }
 /* ───────────────────────── PRODUCTION ───────────────────────── */
 function ProdView({ data, update, setSheet, ask }) {
+    const [plotEdit, setPlotEdit] = useState(null);
     const works = [...data.works].sort((a, b) => b.date.localeCompare(a.date));
+    const plotStats = useMemo(() => {
+        const m = {}, nameId = {};
+        data.plots.forEach((p) => { m[p.id] = { kg: 0, sales: 0 }; nameId[p.name] = p.id; });
+        data.works.forEach((w) => { if (w.type === "kanju") {
+            const id = w.plotId || nameId[w.block];
+            if (id && m[id])
+                m[id].kg += (w.kg || 0);
+        } });
+        data.sales.forEach((s) => { const id = s.plotId; if (id && m[id])
+            m[id].sales += (s.amount || 0); });
+        return m;
+    }, [data.plots, data.works, data.sales]);
     const del = (w) => ask(`「${wk(w.type).label}・${w.block}」の記録を削除します。`, () => update((d) => ({ ...d, works: d.works.filter((x) => x.id !== w.id) })));
     return (React.createElement(React.Fragment, null,
         React.createElement("div", { className: "pf-sectitle" },
+            React.createElement("span", null, "\u5703\u5834"),
+            React.createElement("button", { className: "pf-addbtn", onClick: () => setPlotEdit({ mode: "add" }) },
+                React.createElement(Plus, { size: 15 }),
+                " \u8FFD\u52A0")),
+        data.plots.length === 0 ? React.createElement(Empty, { I: MapPin, title: "\u5703\u5834\u304C\u307E\u3060\u3042\u308A\u307E\u305B\u3093", text: "\u7551\uFF08\u5703\u5834\uFF09\u3092\u767B\u9332\u3059\u308B\u3068\u3001\u4F5C\u696D\u8A18\u9332\u3084\u8CA9\u58F2\u3092\u305D\u306E\u5703\u5834\u306B\u3072\u3082\u4ED8\u3051\u3066\u3001\u53CE\u7A6B\u91CF\u30FB\u58F2\u4E0A\u9AD8\u3092\u5703\u5834\u3054\u3068\u306B\u96C6\u8A08\u3067\u304D\u307E\u3059\u3002" }) : (React.createElement("div", { className: "pf-card", style: { paddingTop: 4, paddingBottom: 4 } }, data.plots.map((p) => {
+            const st = plotStats[p.id] || { kg: 0, sales: 0 };
+            return (React.createElement("div", { key: p.id, className: "pf-row", onClick: () => setPlotEdit({ mode: "edit", plot: p }), style: { cursor: "pointer" } },
+                React.createElement("span", { className: "pf-row-ic", style: { background: "#4E7A5A1a", color: "#4E7A5A" } },
+                    React.createElement(MapPin, { size: 18 })),
+                React.createElement("div", { className: "pf-row-main" },
+                    React.createElement("div", { className: "pf-row-t" },
+                        p.name,
+                        p.area ? React.createElement("span", { style: { color: "var(--soft)", fontWeight: 400 } },
+                            " \u30FB",
+                            p.area) : null),
+                    React.createElement("div", { className: "pf-row-s" },
+                        "\u53CE\u7A6B ",
+                        st.kg,
+                        "kg \u30FB\u58F2\u4E0A ",
+                        yen(st.sales))),
+                React.createElement("div", { className: "pf-row-r" },
+                    React.createElement(ChevronRight, { size: 16, style: { color: "var(--soft)" } }))));
+        }))),
+        React.createElement("div", { className: "pf-sectitle", style: { marginTop: 18 } },
             React.createElement("span", null, "\u4F5C\u696D\u8A18\u9332"),
             React.createElement("button", { className: "pf-addbtn", onClick: () => setSheet("work") },
                 React.createElement(Plus, { size: 15 }),
@@ -17932,7 +17981,8 @@ function ProdView({ data, update, setSheet, ask }) {
             React.createElement("div", { className: "pf-eyebrow", style: { color: "var(--leaf)" } },
                 React.createElement(BadgeCheck, { size: 13 }),
                 " \u9632\u9664\u5C65\u6B74"),
-            React.createElement("p", { style: { fontSize: 12.5, color: "#3d5e47", lineHeight: 1.6, marginTop: 8 } }, "\u9632\u9664\u3092\u8A18\u9332\u3057\u3066\u304A\u304F\u3068\u3001\u51FA\u8377\u6642\u306E\u30C8\u30EC\u30FC\u30B5\u30D3\u30EA\u30C6\u30A3\u8AAC\u660E\u3084\u6765\u5B63\u306E\u8A08\u753B\u306B\u4F7F\u3048\u307E\u3059\u3002\u8A2D\u5B9A\u304B\u3089CSV\u306B\u66F8\u304D\u51FA\u305B\u307E\u3059\u3002"))));
+            React.createElement("p", { style: { fontSize: 12.5, color: "#3d5e47", lineHeight: 1.6, marginTop: 8 } }, "\u9632\u9664\u3092\u8A18\u9332\u3057\u3066\u304A\u304F\u3068\u3001\u51FA\u8377\u6642\u306E\u30C8\u30EC\u30FC\u30B5\u30D3\u30EA\u30C6\u30A3\u8AAC\u660E\u3084\u6765\u5B63\u306E\u8A08\u753B\u306B\u4F7F\u3048\u307E\u3059\u3002\u8A2D\u5B9A\u304B\u3089CSV\u306B\u66F8\u304D\u51FA\u305B\u307E\u3059\u3002")),
+        plotEdit && React.createElement(PlotSheet, { plot: plotEdit.mode === "edit" ? plotEdit.plot : null, onClose: () => setPlotEdit(null), update: update, ask: ask })));
 }
 /* ───────────────────────── SALES ───────────────────────── */
 function SalesView({ data, update, setSheet, ask }) {
@@ -17962,7 +18012,8 @@ function SalesView({ data, update, setSheet, ask }) {
                     React.createElement("div", { className: "pf-row-s" },
                         React.createElement("span", { className: "pf-tag", style: { background: C.color + "22", color: C.color } }, C.label),
                         s.kg ? ` ${s.kg}kg` : "",
-                        s.variety && s.variety !== "—" ? ` ・${s.variety}` : "")),
+                        s.variety && s.variety !== "—" ? ` ・${s.variety}` : "",
+                        s.plotName ? ` ・${s.plotName}` : "")),
                 React.createElement("div", { className: "pf-row-r", style: { display: "flex", alignItems: "center", gap: 8 } },
                     React.createElement("div", null,
                         React.createElement("div", { className: "pf-row-amt" }, yen(s.amount)),
@@ -17990,7 +18041,7 @@ function CustView({ data, update, setSheet, ask }) {
     const togglePaid = (id) => update((d) => ({ ...d, reservations: d.reservations.map((r) => r.id === id ? { ...r, paid: !r.paid } : r) }));
     const delR = (r) => ask(`「${r.label || "予約"}・${yen(r.amount)}」の予約を削除します。`, () => update((d) => ({ ...d, reservations: d.reservations.filter((x) => x.id !== r.id) })));
     const convert = (r) => ask(`「${r.label || "予約"}」を出荷済みとして売上に計上します。予約一覧から消え、販売記録に追加されます。`, () => update((d) => ({
-        ...d, sales: [...d.sales, { id: uid(), date: r.deliveryDate || today(), channel: r.channel || "ec", customerId: r.customerId || null, label: r.label || "", variety: r.variety || "", kg: r.kg || 0, amount: r.amount || 0 }],
+        ...d, sales: [...d.sales, { id: uid(), date: r.deliveryDate || today(), channel: r.channel || "ec", customerId: r.customerId || null, label: r.label || "", variety: r.variety || "", kg: r.kg || 0, amount: r.amount || 0, plotId: r.plotId || null, plotName: r.plotName || "" }],
         reservations: d.reservations.filter((x) => x.id !== r.id),
     })));
     const rName = (r) => { var _a; return (r.customerId ? ((_a = byId[r.customerId]) === null || _a === void 0 ? void 0 : _a.name) || r.label : r.label || "—"); };
@@ -18183,17 +18234,23 @@ function resolveCustomer(d, sel, newName, memo, channel) {
     return { customers, customerId, label };
 }
 /* ── sale form ── */
-function SaleSheet({ customers, onClose, update }) {
+function SaleSheet({ customers, plots = [], onClose, update }) {
     const [channel, setChannel] = useState("ec");
     const [sel, setSel] = useState(""), [newName, setNewName] = useState(""), [memo, setMemo] = useState("");
     const [variety, setVariety] = useState("白鳳"), [kg, setKg] = useState(""), [amount, setAmount] = useState(""), [date, setDate] = useState(today());
+    const [plotId, setPlotId] = useState("");
     const ok = amount && Number(amount) > 0;
-    const save = () => { update((d) => { const { customers: cs, customerId, label } = resolveCustomer(d, sel, newName, memo, channel); return { ...d, customers: cs, sales: [...d.sales, { id: uid(), date, channel, customerId, label, variety, kg: Number(kg) || 0, amount: Number(amount) }] }; }); onClose(); };
+    const save = () => { update((d) => { const { customers: cs, customerId, label } = resolveCustomer(d, sel, newName, memo, channel); const pl = plots.find((p) => p.id === plotId); return { ...d, customers: cs, sales: [...d.sales, { id: uid(), date, channel, customerId, label, variety, kg: Number(kg) || 0, amount: Number(amount), plotId: plotId || null, plotName: pl ? pl.name : "" }] }; }); onClose(); };
     return (React.createElement(Sheet, { title: "\u8CA9\u58F2\u3092\u8A18\u9332", onClose: onClose },
         React.createElement("div", { className: "pf-field" },
             React.createElement("label", { className: "pf-label" }, "\u30C1\u30E3\u30CD\u30EB"),
             React.createElement(ChipSelect, { options: CHANNELS, value: channel, onChange: setChannel })),
         React.createElement(CustomerPicker, { customers: customers, sel: sel, setSel: setSel, newName: newName, setNewName: setNewName, memo: memo, setMemo: setMemo }),
+        plots.length > 0 && React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u5703\u5834\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("select", { className: "pf-input", value: plotId, onChange: (e) => setPlotId(e.target.value) },
+                React.createElement("option", { value: "" }, "\u672A\u6307\u5B9A"),
+                plots.map((p) => React.createElement("option", { key: p.id, value: p.id }, p.name)))),
         React.createElement("div", { className: "pf-two" },
             React.createElement("div", { className: "pf-field" },
                 React.createElement("label", { className: "pf-label" }, "\u54C1\u7A2E"),
@@ -18211,17 +18268,20 @@ function SaleSheet({ customers, onClose, update }) {
         React.createElement("button", { className: "pf-btn", disabled: !ok, style: { opacity: ok ? 1 : .5 }, onClick: save }, "\u4FDD\u5B58\u3059\u308B")));
 }
 /* ── work form ── */
-function WorkSheet({ onClose, update }) {
-    const [type, setType] = useState("tekika"), [block, setBlock] = useState(BLOCKS[0]), [date, setDate] = useState(today());
+function WorkSheet({ plots = [], onClose, update }) {
+    const plotNames = plots.map((p) => p.name);
+    const blockOpts = [...plotNames, "全圃場"];
+    const [type, setType] = useState("tekika"), [block, setBlock] = useState(plotNames[0] || "全圃場"), [date, setDate] = useState(today());
     const [hours, setHours] = useState(""), [kg, setKg] = useState(""), [agent, setAgent] = useState(""), [note, setNote] = useState("");
-    const save = () => { update((d) => ({ ...d, works: [...d.works, { id: uid(), date, type, block, hours: Number(hours) || 0, kg: Number(kg) || 0, agent, note }] })); onClose(); };
+    const save = () => { const plotId = (plots.find((p) => p.name === block) || {}).id || null; update((d) => ({ ...d, works: [...d.works, { id: uid(), date, type, block, plotId, hours: Number(hours) || 0, kg: Number(kg) || 0, agent, note }] })); onClose(); };
     return (React.createElement(Sheet, { title: "\u4F5C\u696D\u3092\u8A18\u9332", onClose: onClose },
         React.createElement("div", { className: "pf-field" },
             React.createElement("label", { className: "pf-label" }, "\u4F5C\u696D\u306E\u7A2E\u985E"),
             React.createElement(ChipSelect, { options: WORKS, value: type, onChange: setType })),
         React.createElement("div", { className: "pf-field" },
             React.createElement("label", { className: "pf-label" }, "\u5703\u5834"),
-            React.createElement(ChipSelect, { options: [...BLOCKS, "全圃場"], value: block, onChange: setBlock })),
+            React.createElement(ChipSelect, { options: blockOpts, value: block, onChange: setBlock }),
+            plotNames.length === 0 && React.createElement("div", { style: { fontSize: 12, color: "var(--soft)", marginTop: 6, lineHeight: 1.5 } }, "\u5703\u5834\u306F\u300C\u751F\u7523\u300D\u30BF\u30D6\u306E\u3008\u5703\u5834\u3009\u304B\u3089\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002")),
         type === "bojo" && React.createElement("div", { className: "pf-field" },
             React.createElement("label", { className: "pf-label" }, "\u4F7F\u7528\u85AC\u5264"),
             React.createElement("input", { className: "pf-input", value: agent, onChange: (e) => setAgent(e.target.value), placeholder: "\u4F8B\uFF1A\u6BBA\u83CC\u5264A\u30FB\u5C55\u7740\u5264" })),
@@ -18239,6 +18299,42 @@ function WorkSheet({ onClose, update }) {
             React.createElement("label", { className: "pf-label" }, "\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"),
             React.createElement("input", { className: "pf-input", value: note, onChange: (e) => setNote(e.target.value), placeholder: "\u6C17\u3065\u3044\u305F\u3053\u3068\u3092\u6B8B\u3059" })),
         React.createElement("button", { className: "pf-btn", onClick: save }, "\u4FDD\u5B58\u3059\u308B")));
+}
+/* ── plot (圃場) form ── */
+function PlotSheet({ plot, onClose, update, ask }) {
+    const editing = !!plot;
+    const [name, setName] = useState(plot ? plot.name : "");
+    const [area, setArea] = useState(plot ? plot.area || "" : "");
+    const [note, setNote] = useState(plot ? plot.note || "" : "");
+    const ok = name.trim();
+    const save = () => {
+        update((d) => {
+            if (editing) {
+                const nm = name.trim();
+                return {
+                    ...d,
+                    plots: d.plots.map((p) => p.id === plot.id ? { ...p, name: nm, area: area.trim(), note: note.trim() } : p),
+                    works: d.works.map((w) => w.plotId === plot.id ? { ...w, block: nm } : w),
+                    sales: d.sales.map((s) => s.plotId === plot.id ? { ...s, plotName: nm } : s),
+                };
+            }
+            return { ...d, plots: [...d.plots, { id: uid(), name: name.trim(), area: area.trim(), note: note.trim() }] };
+        });
+        onClose();
+    };
+    const del = () => ask(`圃場「${plot.name}」を削除します。この圃場の作業・販売記録は残りますが、圃場ごとの集計からは外れます。`, () => { update((d) => ({ ...d, plots: d.plots.filter((p) => p.id !== plot.id) })); onClose(); });
+    return (React.createElement(Sheet, { title: editing ? "圃場を編集" : "圃場を追加", onClose: onClose },
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u5703\u5834\u540D"),
+            React.createElement("input", { className: "pf-input", value: name, onChange: (e) => setName(e.target.value), placeholder: "\u4F8B\uFF1A\u6771\u306E\u7551" })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u9762\u7A4D\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("input", { className: "pf-input", value: area, onChange: (e) => setArea(e.target.value), placeholder: "\u4F8B\uFF1A30a\uFF0F0.3ha" })),
+        React.createElement("div", { className: "pf-field" },
+            React.createElement("label", { className: "pf-label" }, "\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"),
+            React.createElement("input", { className: "pf-input", value: note, onChange: (e) => setNote(e.target.value), placeholder: "\u4F8B\uFF1A\u767D\u9CF3\u4E2D\u5FC3\u30FB\u6C34\u306F\u3051\u6CE8\u610F" })),
+        React.createElement("button", { className: "pf-btn", disabled: !ok, style: { opacity: ok ? 1 : .5 }, onClick: save }, "\u4FDD\u5B58\u3059\u308B"),
+        editing && React.createElement("button", { className: "pf-btn", style: { background: "transparent", color: "#C75B43", boxShadow: "none", marginTop: 8 }, onClick: del }, "\u3053\u306E\u5703\u5834\u3092\u524A\u9664")));
 }
 /* ── customer form ── */
 function CustomerSheet({ onClose, update }) {
@@ -18358,7 +18454,7 @@ function SettingsSheet({ data, onClose, update, ask }) {
                     return;
                 }
                 ask("バックアップを読み込み、現在の記録を上書きします。よろしいですか？", () => {
-                    update(() => ({ settings: obj.settings, customers: obj.customers, sales: obj.sales, works: Array.isArray(obj.works) ? obj.works : [], reservations: Array.isArray(obj.reservations) ? obj.reservations : [] }));
+                    update(() => ({ settings: obj.settings, customers: obj.customers, sales: obj.sales, works: Array.isArray(obj.works) ? obj.works : [], reservations: Array.isArray(obj.reservations) ? obj.reservations : [], plots: Array.isArray(obj.plots) ? obj.plots : [] }));
                     setMsg("バックアップを復元しました。");
                 });
             }
@@ -18408,8 +18504,8 @@ function SettingsSheet({ data, onClose, update, ask }) {
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
 
 } catch (err) {
-  var r = document.getElementById('root');
-  if (r) r.innerHTML = '<div style="padding:28px;font-family:system-ui;color:#C75B43;font-size:14px;line-height:1.7">エラー: ' + (err && err.message ? err.message : err) + '</div>';
+  var r=document.getElementById('root');
+  if(r) r.innerHTML='<div style="padding:28px;font-family:system-ui;color:#C75B43;font-size:14px;line-height:1.7">エラー: '+(err&&err.message?err.message:err)+'</div>';
 }
 </script>
 </body>
