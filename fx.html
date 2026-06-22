@@ -647,7 +647,7 @@ function genSeries(pair, tf, salt){
 const DATA_CONFIG = { source:"demo", apiKey:"", provider:"twelvedata" };
 const TF_INTERVAL = {"1H":"1h", "4H":"4h", "1D":"1day"};
 const SERIES_CACHE = {};            // "pair|tf" -> {t, data}
-const CACHE_TTL = 5*60*1000;        // 5分（無料枠の節約＆遅延データなので十分）
+const CACHE_TTL = 10*60*1000;       // 10分（無料枠の節約＆遅延データなので十分）
 let DATA_STATUS = "demo";           // demo | loading | live | partial | error
 let LAST_LIVE_TS = 0;
 const ckey=(p,tf)=>p+"|"+tf;
@@ -703,16 +703,18 @@ async function ensureData(pairs, tfs){
 }
 function updateDataFlag(){
   const el=document.getElementById("dataFlag"); if(!el) return;
-  const ago=LAST_LIVE_TS?Math.max(0,Math.round((Date.now()-LAST_LIVE_TS)/60000)):0;
-  const map={
-    demo:["デモデータ","df-demo"],
-    loading:["取得中…","df-load"],
-    live:[`ライブ ・ ${ago}分前`,"df-live"],
-    partial:[`一部のみライブ（残りデモ）`,"df-warn"],
-    error:["取得失敗→デモ表示","df-warn"]
-  };
-  const [t,c]=map[DATA_STATUS]||map.demo;
-  el.textContent=t; el.className="demo-flag "+c;
+  if(DATA_CONFIG.source!=="live" || !DATA_CONFIG.apiKey){ el.textContent="デモデータ"; el.className="demo-flag df-demo"; return; }
+  // 現在ペアにライブ取得済みデータがあるか（あれば安定して「ライブ」表示）
+  const haveLive=["1H","4H","1D"].some(tf=>{const e=SERIES_CACHE[ckey(CURRENT,tf)]; return e&&e.data&&e.data.length>50;});
+  const allLive=["1H","4H","1D"].every(tf=>{const e=SERIES_CACHE[ckey(CURRENT,tf)]; return e&&e.data&&e.data.length>50;});
+  if(haveLive){
+    const ago=LAST_LIVE_TS?Math.max(0,Math.round((Date.now()-LAST_LIVE_TS)/60000)):0;
+    el.textContent=`ライブ ・ ${ago}分前`+(allLive?"":"（一部デモ）");
+    el.className="demo-flag "+(allLive?"df-live":"df-warn");
+    return;
+  }
+  if(DATA_STATUS==="loading"){ el.textContent="取得中…"; el.className="demo-flag df-load"; return; }
+  el.textContent="取得失敗→デモ表示"; el.className="demo-flag df-warn";
 }
 const closes=s=>s.map(b=>b.c), highs=s=>s.map(b=>b.h), lows=s=>s.map(b=>b.l);
 function sma(a,p){const o=Array(a.length).fill(null);for(let i=p-1;i<a.length;i++){let s=0;for(let j=0;j<p;j++)s+=a[i-j];o[i]=s/p;}return o;}
@@ -1542,7 +1544,7 @@ $("jSave").onclick=()=>{
 };
 
 $("reload").onclick=()=>{
-  if(DATA_CONFIG.source==="live"&&DATA_CONFIG.apiKey){ Object.keys(SERIES_CACHE).forEach(k=>delete SERIES_CACHE[k]); }
+  if(DATA_CONFIG.source==="live"&&DATA_CONFIG.apiKey){ Object.values(SERIES_CACHE).forEach(e=>{ e.t=0; }); } // 古い値は残し再取得だけ促す
   else { SALT++; }
   renderAll();
 };
