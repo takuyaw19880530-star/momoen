@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FXトレード環境ナビ</title>
+<style>
+  :root{
+    --ink-0:#0c1422; --ink-1:#111b2e; --ink-2:#16233a; --ink-3:#1d2c46;
+    --line:#283750; --line-soft:#212f48;
+    --txt:#e8eef8; --txt-dim:#94a4c2; --txt-faint:#64748f;
+    --green:#27d17c; --green-d:#0f3d29; --amber:#f5b13d; --amber-d:#3f2f0e;
+    --red:#f25563; --red-d:#3d1620; --gold:#e7b24b; --cyan:#46d6cf;
+    --up:#27d17c; --down:#f25563; --flat:#7f8ba6;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+    --r:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #18253c 0%, var(--ink-0) 55%) fixed, var(--ink-0);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.6;
+    padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 24px);
+  }
+  .num{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .wrap{max-width:760px;margin:0 auto;padding:0 14px}
+
+  /* ---------- header ---------- */
+  header{padding:18px 0 6px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(145deg,var(--gold),#b9842b);
+    display:grid;place-items:center;font-weight:800;color:#22160a;font-size:15px;box-shadow:var(--shadow)}
+  .brand h1{font-size:18px;font-weight:700;margin:0;letter-spacing:.02em}
+  .brand .sub{font-size:11px;color:var(--txt-faint);margin-top:1px}
+  .updated{margin-left:auto;text-align:right;font-size:11px;color:var(--txt-faint)}
+  .updated b{color:var(--cyan);font-weight:600}
+  .demo-flag{display:inline-block;margin-top:8px;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid}
+  .df-demo{color:var(--amber);background:var(--amber-d);border-color:#5a430f}
+  .df-load{color:var(--cyan);background:var(--ink-3);border-color:var(--line)}
+  .df-live{color:var(--green);background:var(--green-d);border-color:#1d6b48}
+  .df-warn{color:var(--red);background:var(--red-d);border-color:#7a2730}
+  .set-input{width:100%;background:var(--ink-0);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit}
+  .set-note{font-size:10.5px;color:var(--txt-faint);line-height:1.55;margin-top:7px}
+
+  /* ---------- pair tabs ---------- */
+  .pairs{display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
+  .pairs::-webkit-scrollbar{display:none}
+  .pair{flex:0 0 auto;border:1px solid var(--line);background:var(--ink-1);color:var(--txt-dim);
+    border-radius:12px;padding:8px 13px;cursor:pointer;transition:.15s;min-width:96px}
+  .pair .pn{font-size:12px;font-weight:600}
+  .pair .pp{font-size:15px;font-weight:700;margin-top:1px}
+  .pair .pc{font-size:11px;margin-top:1px}
+  .pair.active{border-color:var(--gold);background:linear-gradient(160deg,#1f2c44,#16233a);color:var(--txt);box-shadow:var(--shadow)}
+
+  /* ---------- card ---------- */
+  .card{background:linear-gradient(180deg,var(--ink-2),var(--ink-1));border:1px solid var(--line-soft);
+    border-radius:var(--r);padding:16px;margin-top:14px;box-shadow:var(--shadow)}
+  .card-h{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .card-h .t{font-size:13px;font-weight:700;letter-spacing:.04em}
+  .card-h .badge{font-size:10px;color:var(--txt-faint);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+  .eyebrow{font-size:10px;letter-spacing:.18em;color:var(--txt-faint);text-transform:uppercase;font-weight:700}
+
+  /* ---------- verdict (signature) ---------- */
+  .verdict{background:
+      radial-gradient(130% 130% at 85% -20%, rgba(231,178,75,.10), transparent 50%),
+      linear-gradient(180deg,#1a2840,#13203a);
+    border:1px solid #2b3b58}
+  .price-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .price-row .px{font-size:34px;font-weight:800}
+  .price-row .ch{font-size:14px;font-weight:700;padding:3px 8px;border-radius:8px}
+  .ch.up{color:var(--up);background:var(--green-d)} .ch.down{color:var(--down);background:var(--red-d)}
+  .price-row .day{font-size:11px;color:var(--txt-faint)}
+  .headline{margin:15px 0 0;font-size:19px;font-weight:800;line-height:1.35;
+    background:linear-gradient(120deg,rgba(231,178,75,.12),transparent 70%);
+    border-left:3px solid var(--gold);padding:9px 0 9px 12px;border-radius:0 8px 8px 0}
+  .headline .hl{color:var(--gold)}
+  .headline-sub{font-size:12.5px;color:var(--txt-dim);margin-top:7px}
+
+  /* style traffic light */
+  .styles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:15px}
+  .style{position:relative}
+  .style.best{box-shadow:0 0 0 1.5px var(--gold), var(--shadow)}
+  .best-tag{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;
+    color:#22160a;background:var(--gold);padding:2px 8px;border-radius:999px;white-space:nowrap;z-index:2}
+  .style{border-radius:13px;padding:11px 10px;border:1px solid var(--line);background:var(--ink-1);text-align:center;position:relative;overflow:hidden}
+  .style .lamp{width:13px;height:13px;border-radius:50%;margin:0 auto 7px;box-shadow:0 0 0 4px rgba(255,255,255,.04)}
+  .style .nm{font-size:11.5px;color:var(--txt-dim);font-weight:600}
+  .style .mk{font-size:21px;font-weight:800;margin-top:1px;line-height:1}
+  .style .sc{font-size:10px;color:var(--txt-faint);margin-top:3px}
+  .style .bar{height:4px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+  .style .bar>i{display:block;height:100%;border-radius:3px}
+  .lamp.g{background:var(--green);box-shadow:0 0 12px var(--green)} .style.g{border-color:#1d6b48}
+  .lamp.a{background:var(--amber);box-shadow:0 0 12px var(--amber)} .style.a{border-color:#7a5a18}
+  .lamp.r{background:var(--red);box-shadow:0 0 12px var(--red)} .style.r{border-color:#7a2730}
+  .g .mk{color:var(--green)} .a .mk{color:var(--amber)} .r .mk{color:var(--red)}
+  .g .bar>i{background:var(--green)} .a .bar>i{background:var(--amber)} .r .bar>i{background:var(--red)}
+  .style-reasons{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+  .sr{display:flex;gap:8px;font-size:12px;align-items:flex-start}
+  .sr .dot{flex:0 0 auto;margin-top:6px;width:6px;height:6px;border-radius:50%}
+  .sr.g .dot{background:var(--green)} .sr.a .dot{background:var(--amber)} .sr.r .dot{background:var(--red)}
+  .sr b{font-weight:700}
+
+  /* ---------- regime chips ---------- */
+  .regime{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chip{background:var(--ink-1);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .chip .lab{font-size:10.5px;color:var(--txt-faint);letter-spacing:.05em}
+  .chip .val{font-size:16px;font-weight:800;margin-top:2px}
+  .chip .meta{font-size:11px;color:var(--txt-dim);margin-top:2px}
+  .chip .gauge{height:6px;border-radius:4px;background:var(--line);margin-top:8px;overflow:hidden;position:relative}
+  .chip .gauge>i{position:absolute;top:0;bottom:0;border-radius:4px}
+
+  /* ---------- multi timeframe ---------- */
+  .mtf{display:flex;flex-direction:column;gap:8px}
+  .tf{display:flex;align-items:center;gap:11px;background:var(--ink-1);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .tf .span{flex:0 0 64px;font-size:13px;font-weight:700}
+  .tf .span small{display:block;font-size:10px;color:var(--txt-faint);font-weight:500}
+  .tf .arrow{font-size:20px;width:26px;text-align:center}
+  .tf .desc{font-size:12px;color:var(--txt-dim);flex:1}
+  .tf .desc b{color:var(--txt)}
+  .arr-up{color:var(--up)} .arr-dn{color:var(--down)} .arr-fl{color:var(--flat)}
+  .mtf-foot{margin-top:11px;padding:11px 12px;border-radius:11px;font-size:12.5px;border:1px dashed var(--line)}
+  .mtf-foot.align{background:linear-gradient(90deg,rgba(39,209,124,.10),transparent);border-color:#1d6b48}
+  .mtf-foot.mix{background:rgba(245,177,61,.07);border-color:#7a5a18}
+  .mtf-foot b{font-weight:800}
+
+  /* ---------- session clock ---------- */
+  .sess{display:flex;flex-direction:column;gap:9px}
+  .sline{display:flex;align-items:center;gap:10px}
+  .sline .snm{flex:0 0 92px;font-size:12px;color:var(--txt-dim)}
+  .track{flex:1;height:14px;border-radius:7px;background:var(--ink-0);position:relative;overflow:hidden;border:1px solid var(--line)}
+  .track>i{position:absolute;top:0;bottom:0;border-radius:7px;opacity:.85}
+  .nowline{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--gold);box-shadow:0 0 8px var(--gold);z-index:3}
+  .sess-note{margin-top:6px;font-size:12.5px;color:var(--txt-dim)}
+  .sess-note b{color:var(--gold)}
+
+  /* ---------- indicators ---------- */
+  .ind{border-bottom:1px solid var(--line-soft)}
+  .ind:last-child{border-bottom:0}
+  .ind-head{display:flex;align-items:center;gap:10px;padding:12px 2px;cursor:pointer}
+  .ind-head .pill{flex:0 0 auto;font-size:10px;font-weight:700;padding:4px 9px;border-radius:999px}
+  .pill.g{color:var(--green);background:var(--green-d)} .pill.a{color:var(--amber);background:var(--amber-d)}
+  .pill.r{color:var(--red);background:var(--red-d)} .pill.n{color:var(--txt-dim);background:var(--ink-3)}
+  .ind-head .inm{font-size:13px;font-weight:700;flex:0 0 auto}
+  .ind-head .ist{font-size:12px;color:var(--txt-dim);flex:1;text-align:right}
+  .ind-head .iv{font-size:12px;color:var(--txt);font-weight:600}
+  .ind-head .caret{color:var(--txt-faint);transition:.2s;flex:0 0 auto}
+  .ind.open .caret{transform:rotate(90deg)}
+  .ind-body{display:none;padding:0 2px 14px;font-size:12.5px;color:var(--txt-dim)}
+  .ind.open .ind-body{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(-3px)}to{opacity:1}}
+  .ind-body .what{background:var(--ink-1);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:4px}
+  .ind-body .what .lab{color:var(--cyan);font-size:10px;font-weight:700;letter-spacing:.08em}
+  .ind-body .read{margin-top:9px}
+  .ind-body .read b{color:var(--txt)}
+
+  /* ---------- status bar + zone labels ---------- */
+  .statusbar{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0 4px;padding-top:14px;border-top:1px solid var(--line-soft)}
+  .statusbar::before{content:"市場の状態";display:block;width:100%;font-size:10px;letter-spacing:.1em;color:var(--txt-faint);font-weight:700;margin-bottom:-2px}
+  .spill{font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid;white-space:nowrap}
+  .spill.g{color:var(--green);background:var(--green-d);border-color:#1d6b48}
+  .spill.a{color:var(--amber);background:var(--amber-d);border-color:#7a5a18}
+  .spill.r{color:var(--red);background:var(--red-d);border-color:#7a2730}
+  .spill.n{color:var(--txt-dim);background:var(--ink-3);border-color:var(--line)}
+  .zonelabel{display:flex;align-items:center;gap:10px;margin:26px 4px 2px}
+  .zonelabel:first-of-type{margin-top:8px}
+  .zonelabel span{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--txt)}
+  .zonelabel small{font-size:11px;color:var(--txt-faint)}
+  .zonelabel::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+  /* ---------- trigger card ---------- */
+  .trig-card{background:
+      radial-gradient(120% 120% at 10% -20%, rgba(70,214,207,.08), transparent 55%),
+      linear-gradient(180deg,#15243a,#111c30);border:1px solid #2b3b58}
+  .trig-main{font-size:14.5px;line-height:1.6}
+  .trig-main b{color:var(--gold)}
+  .trig-levels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+  .tl{background:var(--ink-0);border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .tl .k{font-size:10.5px;color:var(--txt-faint)}
+  .tl .v{font-size:15px;font-weight:800;margin-top:2px;color:var(--txt)}
+  .trig-eventnote{margin-top:12px;padding:10px 12px;border-radius:11px;font-size:12px;background:var(--red-d);border:1px solid #7a2730}
+
+  /* ---------- indicator groups + gauges ---------- */
+  /* ---------- pro read-through steps ---------- */
+  .step{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-soft)}
+  .step:first-child{margin-top:2px;padding-top:0;border-top:0}
+  .step-head{display:flex;align-items:flex-start;gap:11px;margin-bottom:10px}
+  .step-no{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    font-size:14px;font-weight:800;color:#22160a;background:linear-gradient(145deg,var(--gold),#bd8a2e);box-shadow:var(--shadow)}
+  .step-txt{flex:1}
+  .step-q{font-size:14.5px;font-weight:800;line-height:1.3}
+  .step-teach{font-size:11.5px;color:var(--txt-dim);margin-top:3px;line-height:1.55}
+  .mtf-mini{background:var(--ink-1);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-top:8px}
+  .mtf-lab{font-size:10.5px;color:var(--txt-faint);font-weight:700;letter-spacing:.04em;margin-bottom:8px}
+  .tfchips{display:flex;gap:7px}
+  .tfchip{flex:1;border-radius:10px;padding:8px 4px;text-align:center;background:var(--ink-0);border:1px solid var(--line)}
+  .tfchip .tfn{display:block;font-size:10.5px;color:var(--txt-dim);font-weight:700}
+  .tfchip .tfa{display:block;font-size:20px;line-height:1.1;margin:1px 0}
+  .tfchip .tfd{display:block;font-size:10px;color:var(--txt-faint)}
+  .tfchip.up{border-color:#1d6b48} .tfchip.up .tfa{color:var(--up)} .tfchip.up .tfd{color:var(--up)}
+  .tfchip.dn{border-color:#7a2730} .tfchip.dn .tfa{color:var(--down)} .tfchip.dn .tfd{color:var(--down)}
+  .tfchip.fl .tfa{color:var(--flat)}
+  .mtf-verdict{margin-top:9px;font-size:12px;padding:8px 11px;border-radius:9px;line-height:1.5;border:1px solid}
+  .mtf-verdict b{font-weight:800}
+  .mtf-verdict.g{background:var(--green-d);border-color:#1d6b48} .mtf-verdict.g b{color:var(--green)}
+  .mtf-verdict.a{background:var(--amber-d);border-color:#7a5a18} .mtf-verdict.a b{color:var(--amber)}
+
+  .igsum{font-size:12.5px;margin:7px 0 4px;padding:8px 12px;border-radius:10px;border:1px solid}
+  .igsum b{font-weight:800}
+  .igsum .igmap{color:var(--txt-dim);font-weight:600}
+  .igsum.g{background:var(--green-d);border-color:#1d6b48} .igsum.g b{color:var(--green)}
+  .igsum.a{background:var(--amber-d);border-color:#7a5a18} .igsum.a b{color:var(--amber)}
+  .igsum.r{background:var(--red-d);border-color:#7a2730} .igsum.r b{color:var(--red)}
+  .igsum.n{background:var(--ink-3);border-color:var(--line)} .igsum.n b{color:var(--txt-dim)}
+  .icard{background:var(--ink-1);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-top:8px}
+  .ic-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .ic-top .nm{font-size:13px;font-weight:700}
+  .ic-top .dir{font-size:11px;font-weight:700;margin-left:auto}
+  .ic-top .dir.up{color:var(--up)} .ic-top .dir.dn{color:var(--down)} .ic-top .dir.fl{color:var(--txt-faint)}
+  .ic-top .val{font-size:14px;font-weight:800;min-width:46px;text-align:right}
+  .gbar{position:relative;height:10px;border-radius:5px;background:var(--ink-0);margin:11px 0 0;overflow:hidden}
+  .gzone{position:absolute;top:0;bottom:0}
+  /* 色覚に依存しないよう、ゾーンを模様でも区別 */
+  .gz-g{background:rgba(39,209,124,0.30)}
+  .gz-n{background:rgba(127,139,166,0.20)}
+  .gz-a{background:rgba(245,177,61,0.32);
+    background-image:repeating-linear-gradient(45deg,transparent 0,transparent 3px,rgba(0,0,0,.14) 3px,rgba(0,0,0,.14) 5px)}
+  .gz-r{background:rgba(242,85,99,0.34);
+    background-image:repeating-linear-gradient(-45deg,transparent 0,transparent 2px,rgba(255,255,255,.22) 2px,rgba(255,255,255,.22) 4px)}
+  .gtick{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.22)}
+  .gmark{position:absolute;top:0;height:100%;width:3px;border-radius:2px;background:#fff;
+    box-shadow:0 0 8px rgba(255,255,255,.85);transform:translateX(-1.5px);z-index:2}
+  .gscale{position:relative;height:14px;margin:3px 0 2px}
+  .gscale span{position:absolute;top:0;font-size:10px;color:var(--txt-faint);transform:translateX(-50%);white-space:nowrap}
+
+  /* trigger checklist + disclaimer */
+  .trig-disc{font-size:11.5px;line-height:1.55;color:var(--txt-dim);background:var(--amber-d);
+    border:1px solid #5a430f;border-radius:10px;padding:8px 11px;margin-bottom:12px}
+  .trig-disc b{color:var(--amber)}
+  .checklist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+  .cl-item{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 10px;border-radius:9px;border:1px solid}
+  .cl-item.ok{background:var(--green-d);border-color:#1d6b48}
+  .cl-item.ng{background:var(--ink-1);border-color:var(--line)}
+  .cl-mark{flex:0 0 auto;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800}
+  .cl-item.ok .cl-mark{background:var(--green);color:#08291a}
+  .cl-item.ng .cl-mark{background:var(--ink-3);color:var(--txt-faint)}
+  .cl-lab{flex:1;font-weight:600}
+  .cl-item.ng .cl-lab{color:var(--txt-dim)}
+  .cl-hint{font-size:10.5px;color:var(--txt-faint);white-space:nowrap}
+  .cl-summary{font-size:12.5px;padding:9px 12px;border-radius:10px;border:1px solid;margin-bottom:13px;line-height:1.5}
+  .cl-summary b{font-weight:800;margin-right:4px}
+  .cl-summary.g{background:var(--green-d);border-color:#1d6b48} .cl-summary.g b{color:var(--green)}
+  .cl-summary.a{background:var(--amber-d);border-color:#7a5a18} .cl-summary.a b{color:var(--amber)}
+  .cl-summary.r{background:var(--red-d);border-color:#7a2730} .cl-summary.r b{color:var(--red)}
+
+  /* journal snapshot */
+  .jsnap{font-size:11px;color:var(--cyan);background:var(--ink-0);border:1px solid var(--line);
+    border-radius:8px;padding:5px 9px;margin:2px 0 6px}
+  .jnote-txt{font-size:12.5px;line-height:1.55}
+  .ic-read{font-size:12.5px;color:var(--txt-dim);line-height:1.6;margin-top:6px}
+  .ic-read b{color:var(--txt)}
+  .ic-what-btn{display:inline-block;font-size:11px;color:var(--cyan);cursor:pointer;margin-top:8px;font-weight:600}
+  .ic-what{display:none;margin-top:8px;padding:9px 11px;background:var(--ink-0);border:1px solid var(--line);
+    border-radius:10px;font-size:12px;color:var(--txt-dim);line-height:1.6}
+  .icard.open .ic-what{display:block}
+
+  /* ---------- events ---------- */
+  .ev{display:flex;gap:11px;padding:10px 2px;border-bottom:1px solid var(--line-soft);align-items:center}
+  .ev:last-child{border-bottom:0}
+  .ev .when{flex:0 0 64px;font-size:11px;color:var(--txt-dim);text-align:center;line-height:1.3}
+  .ev .when b{display:block;font-size:13px;color:var(--txt);font-weight:700}
+  .ev .imp{flex:0 0 auto;width:8px;height:8px;border-radius:50%}
+  .imp.h{background:var(--red);box-shadow:0 0 8px var(--red)} .imp.m{background:var(--amber)} .imp.l{background:var(--flat)}
+  .ev .et{font-size:12.5px;flex:1}
+  .ev .et small{color:var(--txt-faint);font-size:11px}
+  .ev-warn{margin-top:12px;padding:11px 12px;border-radius:11px;font-size:12.5px;background:var(--red-d);border:1px solid #7a2730}
+  .ev-warn.calm{background:var(--green-d);border-color:#1d6b48}
+
+  /* ---------- journal ---------- */
+  .jrow{display:flex;gap:8px;flex-wrap:wrap}
+  .jrow select,.jrow input,.jrow textarea{
+    background:var(--ink-0);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font-size:13px;font-family:inherit}
+  .jrow select{flex:1;min-width:120px} .jrow input{flex:1;min-width:120px}
+  textarea.jnote{width:100%;margin-top:8px;resize:vertical;min-height:54px}
+  .btn{border:0;border-radius:11px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-p{background:linear-gradient(145deg,var(--gold),#c08f30);color:#22160a;margin-top:10px;width:100%}
+  .btn-ghost{background:var(--ink-1);border:1px solid var(--line);color:var(--txt-dim)}
+  .jlist{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .jitem{background:var(--ink-1);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:12.5px}
+  .jitem .jh{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .jitem .jtag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ink-3);color:var(--txt-dim)}
+  .jitem .jdt{font-size:11px;color:var(--txt-faint);margin-left:auto}
+  .jitem .jx{color:var(--txt-faint);cursor:pointer;padding:0 4px}
+  .jempty{font-size:12.5px;color:var(--txt-faint);text-align:center;padding:14px}
+
+  .foot{margin:22px 0 6px;font-size:11px;color:var(--txt-faint);text-align:center;line-height:1.7}
+  .reload{display:flex;align-items:center;gap:8px;background:var(--ink-1);border:1px solid var(--line);
+    color:var(--txt-dim);border-radius:10px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+  .reload:active{transform:scale(.97)}
+  .topbar{display:flex;align-items:center;gap:10px;margin-top:10px}
+
+  /* ---------- tab navigation ---------- */
+  .tabbar{position:sticky;top:0;z-index:30;display:flex;gap:6px;padding:10px 0 9px;
+    background:linear-gradient(180deg,var(--ink-0) 78%,rgba(12,20,34,0));margin-bottom:2px}
+  .navbtn{flex:1;border:1px solid var(--line);background:var(--ink-1);color:var(--txt-dim);
+    border-radius:11px;padding:9px 6px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:5px;transition:.15s}
+  .navbtn.active{border-color:var(--gold);color:var(--txt);background:linear-gradient(160deg,#20304a,#16233a);box-shadow:var(--shadow)}
+  .view{display:none}
+  .view.active{display:block;animation:fade .2s ease}
+
+  /* ---------- chart ---------- */
+  .section-intro{font-size:12px;color:var(--txt-dim);margin:-2px 0 13px;line-height:1.65}
+  .section-intro b{color:var(--txt)}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tfbtn{flex:1;border:1px solid var(--line);background:var(--ink-1);color:var(--txt-dim);
+    border-radius:10px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+  .tfbtn.active{border-color:var(--gold);color:var(--txt);background:linear-gradient(160deg,#1f2c44,#16233a)}
+  .toggles{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+  .tg{font-size:11px;border:1px solid var(--line);background:var(--ink-1);color:var(--txt);border-radius:999px;
+    padding:5px 11px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-weight:600}
+  .tg .sw{width:14px;height:3px;border-radius:2px}
+  .tg.off{opacity:.4}
+  .canvas-wrap{position:relative;width:100%}
+  canvas.chart{width:100%;display:block;touch-action:pan-y}
+  .cv-label{font-size:10px;letter-spacing:.06em;color:var(--txt-faint);margin:12px 2px 3px;font-weight:700}
+  .legend{display:flex;gap:13px;flex-wrap:wrap;font-size:10.5px;color:var(--txt-dim);margin-top:7px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:13px;height:3px;border-radius:2px;display:inline-block}
+  .legend i.dot{width:9px;height:9px;border-radius:2px}
+
+  /* ---------- header icon buttons ---------- */
+  .icon-btn{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--ink-1);
+    color:var(--txt-dim);font-size:15px;cursor:pointer;font-family:inherit;flex:0 0 auto}
+  .icon-btn:active{transform:scale(.95)}
+
+  /* ---------- pair status dot ---------- */
+  .pdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .pdot.g{background:var(--green);box-shadow:0 0 5px var(--green)} .pdot.a{background:var(--amber)} .pdot.n{background:var(--flat)}
+
+  /* ---------- watchlist ---------- */
+  .wl-head,.wl-row{display:grid;grid-template-columns:1.5fr 1fr 1.1fr 0.7fr;gap:6px;align-items:center}
+  .wl-head{font-size:10px;color:var(--txt-faint);padding:0 4px 7px;letter-spacing:.03em}
+  .wl-head span:nth-child(2),.wl-head span:nth-child(4){text-align:right}
+  .wl-row{padding:9px 4px;border-top:1px solid var(--line-soft);cursor:pointer;font-size:12.5px}
+  .wl-row.cur{background:linear-gradient(90deg,rgba(231,178,75,.10),transparent);border-radius:8px}
+  .wl-pair{font-weight:700;display:flex;align-items:center}
+  .wl-star{color:var(--gold);margin-right:3px;font-size:11px}
+  .wl-px{text-align:right;color:var(--txt-dim)}
+  .wl-trend{font-size:11.5px;font-weight:700}
+  .wl-trend.t-g{color:var(--green)} .wl-trend.t-a{color:var(--amber)} .wl-trend.t-n{color:var(--flat)}
+  .wl-cond{text-align:right;font-size:11px;font-weight:800;padding:2px 0}
+  .wl-cond.c-g{color:var(--green)} .wl-cond.c-a{color:var(--amber)} .wl-cond.c-r{color:var(--red)} .wl-cond.c-n{color:var(--txt-faint)}
+
+  /* ---------- selected style lamp ---------- */
+  .style{cursor:pointer}
+  .style.selected{box-shadow:0 0 0 1.5px var(--cyan), var(--shadow)}
+  .style.best.selected{box-shadow:0 0 0 1.5px var(--gold),0 0 0 3.5px rgba(70,214,207,.5)}
+  .sel-tag{font-size:9px;margin-top:5px;padding:2px 0;border-radius:6px;font-weight:700}
+  .style.selected .sel-tag{background:var(--cyan);color:#06302e}
+  .style:not(.selected) .sel-tag{color:var(--txt-faint);border:1px dashed var(--line)}
+
+  /* ---------- chart crosshair ---------- */
+  .cv-cross{position:absolute;top:8px;bottom:8px;width:1px;background:rgba(255,255,255,.5);display:none;pointer-events:none}
+  .cv-readout{position:absolute;top:2px;display:none;pointer-events:none;background:rgba(12,20,34,.92);
+    border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:10px;color:var(--txt);
+    font-family:ui-monospace,monospace;white-space:nowrap;z-index:3}
+  .cv-readout b{color:var(--gold);font-family:inherit}
+
+  /* ---------- overlays (guide/settings) ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(6,10,18,.72);backdrop-filter:blur(3px);z-index:100;
+    display:none;align-items:flex-end;justify-content:center}
+  .overlay.show{display:flex;animation:fade .2s ease}
+  .sheet{background:linear-gradient(180deg,var(--ink-2),var(--ink-1));border:1px solid var(--line);
+    border-radius:18px 18px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:760px;
+    max-height:88vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+  @media(min-width:600px){.overlay{align-items:center}.sheet{border-radius:18px}}
+  .sheet-h{font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center}
+  .sheet-x{margin-left:auto;color:var(--txt-faint);cursor:pointer;font-size:15px;padding:4px}
+  .guide-step{display:flex;gap:11px;margin-bottom:13px;font-size:12.5px;line-height:1.55;color:var(--txt-dim)}
+  .guide-step b{color:var(--txt)}
+  .gno{flex:0 0 auto;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;
+    color:#22160a;background:linear-gradient(145deg,var(--gold),#bd8a2e);font-size:13px}
+  .guide-note{font-size:11.5px;color:var(--amber);background:var(--amber-d);border:1px solid #5a430f;
+    border-radius:10px;padding:9px 11px;margin:6px 0 14px;line-height:1.5}
+  .set-sec{margin-bottom:16px}
+  .set-lab{font-size:11px;color:var(--txt-faint);font-weight:700;letter-spacing:.05em;margin-bottom:8px}
+  .set-check{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;margin-bottom:6px;font-size:12.5px;cursor:pointer;background:var(--ink-1)}
+  .set-check.on{border-color:#1d6b48;background:var(--green-d)}
+  .set-check .ck{flex:0 0 auto;width:18px;height:18px;border-radius:5px;border:1px solid var(--line);
+    display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--green)}
+  .set-check.on .ck{border-color:var(--green);background:rgba(39,209,124,.15)}
+  .set-opts{display:flex;gap:7px}
+  .set-opt{flex:1;border:1px solid var(--line);background:var(--ink-1);color:var(--txt-dim);border-radius:10px;
+    padding:9px 6px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .set-opt.on{border-color:var(--gold);color:var(--txt);background:linear-gradient(160deg,#20304a,#16233a)}
+
+  /* ---------- glossary ---------- */
+  .gloss{border-bottom:1px solid var(--line-soft)}
+  .gloss-h{display:flex;align-items:center;padding:11px 2px;cursor:pointer;font-size:13px;font-weight:700}
+  .gloss-c{margin-left:auto;color:var(--cyan)}
+  .gloss-d{display:none;font-size:12.5px;color:var(--txt-dim);line-height:1.6;padding:0 2px 12px}
+  .gloss.open .gloss-d{display:block}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">FX</div>
+      <div>
+        <h1>環境ナビ</h1>
+        <div class="sub">いまの相場で「どのスタイルが有利か」を一目で</div>
+      </div>
+      <div class="updated">最終更新<br><b id="updated">--</b></div>
+    </div>
+    <div class="topbar">
+      <button class="reload" id="reload">↻ 更新</button>
+      <span class="demo-flag df-demo" id="dataFlag">デモデータ</span>
+      <button class="icon-btn" id="helpBtn" title="使い方">？</button>
+      <button class="icon-btn" id="setBtn" title="設定">⚙</button>
+    </div>
+  </header>
+
+  <div class="pairs" id="pairs"></div>
+
+  <div class="tabbar" id="tabbar">
+    <button class="navbtn active" data-view="summary">結論・行動</button>
+    <button class="navbtn" data-view="basis">チャート・指標</button>
+    <button class="navbtn" data-view="tools">環境・記録</button>
+  </div>
+
+  <!-- ============ VIEW: SUMMARY ============ -->
+  <div class="view active" data-view="summary">
+
+  <!-- WATCHLIST -->
+  <section class="card wl-card">
+    <div class="card-h"><span class="t">ウォッチリスト</span><span class="badge">タップで切替・◎が有望</span></div>
+    <div class="wl-head"><span>通貨ペア</span><span>価格</span><span>トレンド</span><span>条件</span></div>
+    <div id="watchlist"></div>
+  </section>
+
+  <!-- VERDICT -->
+  <section class="card verdict">
+    <div class="price-row">
+      <span class="px num" id="px">--</span>
+      <span class="ch" id="ch">--</span>
+      <span class="day num" id="dayrange">--</span>
+    </div>
+    <div class="headline" id="headline">--</div>
+    <div class="headline-sub" id="headlineSub">--</div>
+
+    <div class="statusbar" id="statusBar"></div>
+
+    <div class="styles" id="styles"></div>
+    <div class="style-reasons" id="styleReasons"></div>
+  </section>
+
+  <!-- TRIGGER -->
+  <section class="card trig-card">
+    <div class="card-h"><span class="t">エントリー目安</span><span class="badge">合図ではなく“目安”</span></div>
+    <div class="trig-disc">⚠️ これは<b>売買シグナルではありません</b>。相場環境から見た「条件の目安」です。最終判断はご自身で。</div>
+    <div class="checklist" id="checklist"></div>
+    <div class="cl-summary" id="clSummary"></div>
+    <div class="trig-main" id="trigMain">--</div>
+    <div class="trig-levels" id="trigLevels"></div>
+    <div id="trigNote"></div>
+  </section>
+
+  </div><!-- /view summary -->
+
+  <!-- ============ VIEW: BASIS (chart + indicators) ============ -->
+  <div class="view" data-view="basis">
+
+  <!-- CHART -->
+  <section class="card chart-card">
+    <div class="card-h"><span class="t">チャート</span><span class="badge" id="chartPairLabel">--</span></div>
+    <div class="tabs" id="tfTabs">
+      <button class="tfbtn" data-tf="1H">1時間足</button>
+      <button class="tfbtn" data-tf="4H">4時間足</button>
+      <button class="tfbtn active" data-tf="1D">日足</button>
+    </div>
+    <div class="toggles" id="chartToggles">
+      <button class="tg" data-ov="ma"><span class="sw" style="background:var(--gold)"></span>移動平均</button>
+      <button class="tg" data-ov="bb"><span class="sw" style="background:#5b7bbf"></span>ボリンジャー</button>
+    </div>
+    <div class="canvas-wrap" id="priceWrap"><canvas class="chart" id="cvPrice"></canvas><div class="cv-cross" id="cvCross"></div><div class="cv-readout" id="cvReadout"></div></div>
+    <div class="legend" id="priceLegend"></div>
+    <div class="cv-label">RSI (14) — 買われすぎ / 売られすぎ</div>
+    <div class="canvas-wrap"><canvas class="chart" id="cvRsi"></canvas></div>
+    <div class="cv-label">MACD (12,26,9) — トレンドの勢い</div>
+    <div class="canvas-wrap"><canvas class="chart" id="cvMacd"></canvas></div>
+  </section>
+
+  <!-- READ-THROUGH (プロの読み方) -->
+  <section class="card">
+    <div class="card-h"><span class="t">プロの読み方</span><span class="badge">上から順に</span></div>
+    <p class="section-intro">プロは指標をバラバラに見ません。<b>①方向 → ②位置 → ③勢いとリスク</b> の順に、上から下へ読んでいきます。各ゲージは白いマーカーが色のどのゾーンにあるかで読めます。</p>
+    <div id="indicators"></div>
+  </section>
+
+  </div><!-- /view basis -->
+
+  <!-- ============ VIEW: TOOLS (session + events + journal) ============ -->
+  <div class="view" data-view="tools">
+
+  <!-- SESSION -->
+  <section class="card">
+    <div class="card-h"><span class="t">取引時間帯</span><span class="badge">日本時間</span></div>
+    <div class="sess" id="sess"></div>
+    <div class="sess-note" id="sessNote"></div>
+  </section>
+
+  <!-- EVENTS -->
+  <section class="card">
+    <div class="card-h"><span class="t">重要指標カレンダー</span><span class="badge">デモ</span></div>
+    <div id="events"></div>
+    <div id="eventWarn"></div>
+  </section>
+
+  <!-- JOURNAL -->
+  <section class="card">
+    <div class="card-h"><span class="t">トレード日誌</span><span class="badge">端末内に保存</span></div>
+    <div class="jrow">
+      <select id="jStyle">
+        <option value="スイング">スイング</option>
+        <option value="デイトレ">デイトレ</option>
+        <option value="スキャル">スキャル</option>
+        <option value="見送り">見送り</option>
+      </select>
+      <select id="jSide">
+        <option value="買い">買い (ロング)</option>
+        <option value="売り">売り (ショート)</option>
+        <option value="ノーポジ">ノーポジ</option>
+      </select>
+      <input id="jPair" placeholder="通貨ペア" />
+    </div>
+    <textarea class="jnote" id="jNote" placeholder="エントリー理由・根拠・気づいたこと（例：日足の押し目、4Hでパーフェクトオーダー確認）"></textarea>
+    <button class="btn btn-p" id="jSave">この判断を記録する</button>
+    <div class="jlist" id="jList"></div>
+  </section>
+
+  <!-- GLOSSARY -->
+  <section class="card">
+    <div class="card-h"><span class="t">用語集</span><span class="badge">タップで開く</span></div>
+    <div id="glossary"></div>
+  </section>
+
+  </div><!-- /view tools -->
+
+  <div class="foot">
+    本アプリは相場環境の理解を助ける学習用ツールです。表示は売買の指示ではありません。<br>
+    投資判断・取引はすべてご自身の責任で行ってください。
+  </div>
+</div>
+
+<!-- ===== GUIDE OVERLAY ===== -->
+<div class="overlay" id="guide">
+  <div class="sheet">
+    <div class="sheet-h">はじめての方へ<span class="sheet-x" id="guideX">✕</span></div>
+    <div class="guide-step"><span class="gno">1</span><div><b>結論・行動</b><br>いまの地合いと「どの向きで・どこを待つか」。お昼休みはここだけでOK。スタイル信号機（スキャル/デイ/スイング）を<b>タップすると時間軸が切り替わります</b>。</div></div>
+    <div class="guide-step"><span class="gno">2</span><div><b>チャート・指標</b><br>判断の根拠。プロの順番（①方向→②位置→③勢い）で読めます。チャートは<b>タップで数値を確認</b>できます。</div></div>
+    <div class="guide-step"><span class="gno">3</span><div><b>環境・記録</b><br>取引時間帯・重要指標・トレード日誌・用語集。</div></div>
+    <div class="guide-note">表示はすべて「環境の目安」で、売買シグナルではありません。投資は自己責任で。</div>
+    <button class="btn btn-p" id="guideOk">はじめる</button>
+  </div>
+</div>
+
+<!-- ===== SETTINGS OVERLAY ===== -->
+<div class="overlay" id="settings">
+  <div class="sheet">
+    <div class="sheet-h">設定<span class="sheet-x" id="setX">✕</span></div>
+    <div class="set-sec">
+      <div class="set-lab">データソース</div>
+      <input class="set-input" id="setApiKey" type="text" placeholder="Twelve Data APIキー（空欄=デモ）" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="set-note">無料キーは twelvedata.com で取得（8回/分・800回/日）。キーを入れるとライブ取得（数分遅延・5分キャッシュ）。空欄ならデモ。取得失敗時は自動でデモ表示に戻ります。</div>
+    </div>
+    <div class="set-sec"><div class="set-lab">表示する通貨ペア</div><div id="setPairs"></div></div>
+    <div class="set-sec"><div class="set-lab">初期スタイル（時間軸）</div><div class="set-opts" id="setHorizon"></div></div>
+    <div class="set-sec"><div class="set-lab">起動時のタブ</div><div class="set-opts" id="setTab"></div></div>
+    <button class="btn btn-p" id="setSave">保存して閉じる</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   FXトレード環境ナビ  —  完全自己完結（外部通信なし / デモデータ）
+   指標計算は本物。後で price データを実APIに差し替えるだけで動く設計。
+   ============================================================ */
+
+/* ---------- 乱数（シード固定で安定したデモ） ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+/* ---------- デモ価格生成（OHLC） ----------
+   pair ごとに相場シナリオ（regime + ボラ）を仕込む。検証可能で多様な状態を作る。
+   regime: trend_up / trend_down / range
+   volPct: 1日あたりの平均変動率（価格に対する%）。
+   実APIに差し替える時は genSeries を「OHLC配列を返す関数」に置換するだけ。 */
+const PAIR_DEF = {
+  "USD/JPY":{label:"ドル円", base:157.40, regime:"trend_up", volPct:0.0046, volState:"normal", dec:3, seed:42},
+  "EUR/JPY":{label:"ユーロ円", base:169.80, regime:"trend_up", volPct:0.0052, volState:"normal", dec:3, seed:7},
+  "EUR/USD":{label:"ユーロドル", base:1.0830, regime:"range",   volPct:0.0034, volState:"low",    dec:5, seed:99},
+  "GBP/JPY":{label:"ポンド円", base:199.20, regime:"trend_down",volPct:0.0082, volState:"high",   dec:3, seed:13},
+  "AUD/JPY":{label:"豪ドル円", base:103.10, regime:"range",     volPct:0.0040, volState:"normal", dec:3, seed:21}
+};
+const TF = {"1H":{bars:260,vol:0.34,idx:1},"4H":{bars:260,vol:0.58,idx:2},"1D":{bars:260,vol:1.0,idx:3}};
+
+function genSeries(pair, tf, salt){
+  const d=PAIR_DEF[pair], cfg=TF[tf];
+  const rng=mulberry32(d.seed*1000 + salt*97 + cfg.idx);
+  const anchor=d.base, bars=cfg.bars;
+  const volBar=anchor*d.volPct*cfg.vol;
+  const isTrend=d.regime!=="range";
+  const driftBar=(d.regime==="trend_up"?1:d.regime==="trend_down"?-1:0)*volBar*0.27;
+  const noiseF=isTrend?3.0:2.4, revF=isTrend?0:0.22;
+  let p=anchor; const raw=[];
+  for(let i=0;i<bars;i++){
+    const o=p;
+    let vb=volBar;
+    if(i>=bars-28) vb*=(d.volState==="high"?1.7:d.volState==="low"?0.5:1.0); // 直近のボラ変化
+    let move=driftBar + (rng()-0.5)*vb*noiseF;
+    if(d.regime==="range") move+=(anchor-p)*revF;                            // 平均回帰
+    p=p+move;
+    const c=p;
+    raw.push({o, c, h:Math.max(o,c)+Math.abs(rng())*vb*0.5, l:Math.min(o,c)-Math.abs(rng())*vb*0.5});
+  }
+  const shift=anchor - raw[bars-1].c;  // 末尾終値を base に合わせて平行移動（形状保持）
+  return raw.map(b=>({o:b.o+shift, h:b.h+shift, l:b.l+shift, c:b.c+shift}));
+}
+
+/* ============================================================
+   データソース（デモ ⇔ ライブ）
+   ------------------------------------------------------------
+   ・loadSeries(pair,tf)（同期）… 描画/判定はすべてこれを使う。
+       キャッシュがあればそれ、無ければデモ(genSeries)を返す＝常に壊れない。
+   ・ensureData(pairs,tfs)（非同期）… ライブ時だけ実APIで取得しキャッシュへ。
+       失敗は握りつぶしてデモにフォールバック。
+   ・APIキーは設定画面で入力。キーが入れば source=live。
+   提供元：Twelve Data（無料枠：8req/分・800req/日、数分遅延、ブラウザCORS可）
+   ============================================================ */
+const DATA_CONFIG = { source:"demo", apiKey:"", provider:"twelvedata" };
+const TF_INTERVAL = {"1H":"1h", "4H":"4h", "1D":"1day"};
+const SERIES_CACHE = {};            // "pair|tf" -> {t, data}
+const CACHE_TTL = 5*60*1000;        // 5分（無料枠の節約＆遅延データなので十分）
+let DATA_STATUS = "demo";           // demo | loading | live | partial | error
+let LAST_LIVE_TS = 0;
+const ckey=(p,tf)=>p+"|"+tf;
+const cacheFresh=(p,tf)=>{const e=SERIES_CACHE[ckey(p,tf)]; return e && (Date.now()-e.t<CACHE_TTL);};
+
+// 同期取得：キャッシュ優先、無ければデモ
+function loadSeries(pair, tf){
+  const e=SERIES_CACHE[ckey(pair,tf)];
+  if(e && e.data && e.data.length>50) return e.data;
+  return genSeries(pair, tf, SALT);
+}
+
+// レート制限スロットル（8/分の手前=7で待機）
+let _ft=[];
+async function _throttle(){
+  const now=Date.now(); _ft=_ft.filter(t=>now-t<60000);
+  if(_ft.length>=7){ await new Promise(r=>setTimeout(r, 60000-(now-_ft[0])+250)); }
+  _ft.push(Date.now());
+}
+async function fetchSeriesLive(pair, tf){
+  await _throttle();
+  const url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}`
+    +`&interval=${TF_INTERVAL[tf]}&outputsize=260&apikey=${encodeURIComponent(DATA_CONFIG.apiKey)}`;
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(), 8000); // 8秒で打ち切り（ハング防止）
+  let j;
+  try{
+    const res=await fetch(url,{signal:ctrl.signal});
+    j=await res.json();
+  } finally { clearTimeout(timer); }
+  if(!j || !j.values || j.status==="error") throw new Error((j&&j.message)||"APIエラー");
+  const data=j.values.slice().reverse()
+    .map(v=>({o:+v.open, h:+v.high, l:+v.low, c:+v.close}))
+    .filter(b=>isFinite(b.o)&&isFinite(b.h)&&isFinite(b.l)&&isFinite(b.c));
+  if(data.length<50) throw new Error("データ不足");
+  return data;
+}
+// 必要な series をキャッシュに用意（ライブ時のみ実フェッチ）
+async function ensureData(pairs, tfs){
+  if(DATA_CONFIG.source!=="live" || !DATA_CONFIG.apiKey){ DATA_STATUS="demo"; updateDataFlag(); return; }
+  const jobs=[];
+  pairs.forEach(p=>tfs.forEach(tf=>{ if(!cacheFresh(p,tf)) jobs.push([p,tf]); }));
+  if(!jobs.length){ DATA_STATUS = LAST_LIVE_TS?"live":"demo"; updateDataFlag(); return; }
+  DATA_STATUS="loading"; updateDataFlag();
+  let okAny=false, errAny=false;
+  await Promise.all(jobs.map(async ([p,tf])=>{
+    try{ SERIES_CACHE[ckey(p,tf)]={t:Date.now(), data:await fetchSeriesLive(p,tf)}; okAny=true; }
+    catch(e){ errAny=true; }
+  }));
+  if(okAny){ LAST_LIVE_TS=Date.now(); DATA_STATUS = errAny?"partial":"live"; }
+  else DATA_STATUS="error";
+  updateDataFlag();
+}
+function updateDataFlag(){
+  const el=document.getElementById("dataFlag"); if(!el) return;
+  const ago=LAST_LIVE_TS?Math.max(0,Math.round((Date.now()-LAST_LIVE_TS)/60000)):0;
+  const map={
+    demo:["デモデータ","df-demo"],
+    loading:["取得中…","df-load"],
+    live:[`ライブ ・ ${ago}分前`,"df-live"],
+    partial:[`一部のみライブ（残りデモ）`,"df-warn"],
+    error:["取得失敗→デモ表示","df-warn"]
+  };
+  const [t,c]=map[DATA_STATUS]||map.demo;
+  el.textContent=t; el.className="demo-flag "+c;
+}
+const closes=s=>s.map(b=>b.c), highs=s=>s.map(b=>b.h), lows=s=>s.map(b=>b.l);
+function sma(a,p){const o=Array(a.length).fill(null);for(let i=p-1;i<a.length;i++){let s=0;for(let j=0;j<p;j++)s+=a[i-j];o[i]=s/p;}return o;}
+function ema(a,p){const o=Array(a.length).fill(null);const k=2/(p+1);let prev=null;for(let i=0;i<a.length;i++){if(i===p-1){let s=0;for(let j=0;j<p;j++)s+=a[i-j];prev=s/p;o[i]=prev;}else if(i>=p){prev=a[i]*k+prev*(1-k);o[i]=prev;}}return o;}
+function stdev(a,p){const o=Array(a.length).fill(null);for(let i=p-1;i<a.length;i++){let m=0;for(let j=0;j<p;j++)m+=a[i-j];m/=p;let v=0;for(let j=0;j<p;j++){const d=a[i-j]-m;v+=d*d;}o[i]=Math.sqrt(v/p);}return o;}
+function rsi(a,p=14){const o=Array(a.length).fill(null);let g=0,l=0;for(let i=1;i<a.length;i++){const d=a[i]-a[i-1];const up=Math.max(d,0),dn=Math.max(-d,0);if(i<=p){g+=up;l+=dn;if(i===p){g/=p;l/=p;o[i]=100-100/(1+(l===0?100:g/l));}}else{g=(g*(p-1)+up)/p;l=(l*(p-1)+dn)/p;o[i]=100-100/(1+(l===0?100:g/l));}}return o;}
+function atr(s,p=14){const tr=Array(s.length).fill(null);for(let i=0;i<s.length;i++){if(i===0){tr[i]=s[i].h-s[i].l;}else{tr[i]=Math.max(s[i].h-s[i].l,Math.abs(s[i].h-s[i-1].c),Math.abs(s[i].l-s[i-1].c));}}const o=Array(s.length).fill(null);let prev=null;for(let i=0;i<s.length;i++){if(i===p){let sm=0;for(let j=1;j<=p;j++)sm+=tr[j];prev=sm/p;o[i]=prev;}else if(i>p){prev=(prev*(p-1)+tr[i])/p;o[i]=prev;}}return o;}
+function macd(a,f=12,sl=26,sig=9){const ef=ema(a,f),es=ema(a,sl);const line=a.map((_,i)=>ef[i]!=null&&es[i]!=null?ef[i]-es[i]:null);const valid=line.map(v=>v==null?0:v);const sigArr=ema(valid,sig).map((v,i)=>line[i]==null?null:v);const hist=line.map((v,i)=>v!=null&&sigArr[i]!=null?v-sigArr[i]:null);return{line,signal:sigArr,hist};}
+function stoch(s,p=14,d=3){const o=Array(s.length).fill(null);for(let i=p-1;i<s.length;i++){let hh=-Infinity,ll=Infinity;for(let j=0;j<p;j++){hh=Math.max(hh,s[i-j].h);ll=Math.min(ll,s[i-j].l);}o[i]=hh===ll?50:(s[i].c-ll)/(hh-ll)*100;}const k=o.slice();const dd=sma(o.map(v=>v==null?0:v),d).map((v,i)=>k[i]==null?null:v);return{k,d:dd};}
+function adx(s,p=14){const n=s.length;const tr=Array(n).fill(0),pdm=Array(n).fill(0),ndm=Array(n).fill(0);for(let i=1;i<n;i++){const up=s[i].h-s[i-1].h,dn=s[i-1].l-s[i].l;pdm[i]=(up>dn&&up>0)?up:0;ndm[i]=(dn>up&&dn>0)?dn:0;tr[i]=Math.max(s[i].h-s[i].l,Math.abs(s[i].h-s[i-1].c),Math.abs(s[i].l-s[i-1].c));}
+  function wild(arr){const o=Array(n).fill(null);let prev=0;for(let i=1;i<=p;i++)prev+=arr[i];o[p]=prev;for(let i=p+1;i<n;i++){prev=prev-prev/p+arr[i];o[i]=prev;}return o;}
+  const trS=wild(tr),pdS=wild(pdm),ndS=wild(ndm);const pdi=Array(n).fill(null),ndi=Array(n).fill(null),dx=Array(n).fill(null);
+  for(let i=p;i<n;i++){if(trS[i]){pdi[i]=100*pdS[i]/trS[i];ndi[i]=100*ndS[i]/trS[i];const sum=pdi[i]+ndi[i];dx[i]=sum?100*Math.abs(pdi[i]-ndi[i])/sum:0;}}
+  const o=Array(n).fill(null);let prev=null;let cnt=0,acc=0;for(let i=p;i<n;i++){if(dx[i]==null)continue;cnt++;acc+=dx[i];if(cnt===p){prev=acc/p;o[i]=prev;}else if(cnt>p){prev=(prev*(p-1)+dx[i])/p;o[i]=prev;}}
+  return{adx:o,pdi,ndi};}
+
+const last=a=>{for(let i=a.length-1;i>=0;i--)if(a[i]!=null)return a[i];return null;};
+const lastN=(a,n)=>{const r=[];for(let i=a.length-1;i>=0&&r.length<n;i--)if(a[i]!=null)r.unshift(a[i]);return r;};
+
+/* ---------- 1時間軸の分析 ---------- */
+function analyze(series){
+  const c=closes(series);
+  const s20=sma(c,20),s50=sma(c,50),s200=sma(c,200);
+  const r=rsi(c),m=macd(c),bbMid=sma(c,20),bbSd=stdev(c,20),at=atr(series),ax=adx(series),st=stoch(series);
+  const price=last(c);
+  const bw=last(bbSd)!=null?(4*last(bbSd))/last(bbMid)*100:null; // バンド幅%
+  const bwArr=[]; for(let i=0;i<c.length;i++){ if(bbSd[i]!=null&&bbMid[i]) bwArr.push(4*bbSd[i]/bbMid[i]*100); }
+  const bwMed=bwArr.slice().sort((a,b)=>a-b)[Math.floor(bwArr.length/2)]||bw; // 中央値
+  const atrArr=at.filter(v=>v!=null);
+  const atrAvg=atrArr.reduce((a,b)=>a+b,0)/atrArr.length; // 全期間平均（直近ボラ変化を比で検出）
+  const atrNow=last(at);
+  const atrPct=atrNow/price*100;
+  // 移動平均の並び
+  const ord = (price>last(s20)&&last(s20)>last(s50)&&last(s50)>last(s200))?"up":
+              (price<last(s20)&&last(s20)<last(s50)&&last(s50)<last(s200))?"down":"mix";
+  // トレンド方向（短中期の傾き）
+  const slope=(last(s20)-sma(c,20)[c.length-6])/last(s20)*100;
+  const dir = ord==="up"?"up":ord==="down"?"down": slope>0.04?"up":slope<-0.04?"down":"flat";
+  return {price, s20:last(s20),s50:last(s50),s200:last(s200), rsi:last(r),
+    macd:last(m.line),macdSig:last(m.signal),macdHist:last(m.hist),
+    bw, bwRatio:bw/bwMed, atrPct, atrRatio:atrNow/atrAvg, adx:last(ax.adx), pdi:last(ax.pdi), ndi:last(ax.ndi),
+    stochK:last(st.k),stochD:last(st.d), order:ord, dir, slope};
+}
+
+/* ---------- 環境認識 → スタイル提案 ---------- */
+function regimeOf(a){
+  const adx=a.adx||0;
+  let trend = adx>=25?"strong":adx>=20?"emerging":"range";
+  let vol = a.atrRatio>=1.18?"high":a.atrRatio<=0.82?"low":"normal";
+  return {trend, vol, adx, atrRatio:a.atrRatio};
+}
+function styleScores(a, reg, session){
+  // ベーススコア
+  let scalp=50, day=50, swing=50;
+  const reasons=[];
+  if(reg.trend==="strong"){ swing+=28; day+=24; scalp+=4;
+    reasons.push(["g","swing/day","ADX "+Math.round(reg.adx)+" の強いトレンド。押し目・戻りを狙うトレンドフォローが有利。"]);}
+  else if(reg.trend==="emerging"){ swing+=12; day+=14; scalp+=6;
+    reasons.push(["a","day","ADX "+Math.round(reg.adx)+"。トレンド発生の初動。方向確認しつつ早めの対応が向く。"]);}
+  else { swing-=22; day-=6; scalp+=10;
+    reasons.push(["a","range","ADX "+Math.round(reg.adx)+" でレンジ気味。スイングは方向感が出にくい。レンジ逆張りなら短期向き。"]);}
+
+  if(reg.vol==="high"){ scalp-=24; day+=8; swing+=6;
+    reasons.push(["r","scalp","ボラ高（平常の"+reg.atrRatio.toFixed(1)+"倍）。値幅が荒く、スキャルは損切りに振られやすい。"]);}
+  else if(reg.vol==="low"){ scalp-=6; day-=6; swing-=4;
+    reasons.push(["a","all","ボラ低め。動意薄。無理に入らず待つ判断も有効。"]);}
+  else { scalp+=6;
+    reasons.push(["g","scalp","ボラは平常域。短期も比較的扱いやすい。"]);}
+
+  // RSI過熱
+  if(a.rsi>=70){ scalp-=8; reasons.push(["a","entry","RSI "+Math.round(a.rsi)+" で買われすぎ。高値掴みに注意、押し目待ちが無難。"]);}
+  else if(a.rsi<=30){ reasons.push(["a","entry","RSI "+Math.round(a.rsi)+" で売られすぎ。反発の戻り売り or 逆張りは慎重に。"]);}
+
+  // セッション
+  if(session.key==="tokyo_quiet"){ scalp-=10; day-=4;
+    reasons.push(["a","time","東京時間で値動き穏やか。大きな仕掛けは欧州勢が出る夕方以降が無難。"]);}
+  else if(session.key==="london_ny"){ day+=8; scalp+=4;
+    reasons.push(["g","time","ロンドン・NY重複で最も活発な時間帯。デイトレの値幅が取りやすい。"]);}
+
+  const clamp=v=>Math.max(5,Math.min(98,Math.round(v)));
+  scalp=clamp(scalp);day=clamp(day);swing=clamp(swing);
+  const mk=v=>v>=70?["◎","g"]:v>=55?["○","g"]:v>=40?["△","a"]:["✕","r"];
+  return {
+    scalp:{v:scalp,mk:mk(scalp)}, day:{v:day,mk:mk(day)}, swing:{v:swing,mk:mk(swing)},
+    reasons
+  };
+}
+
+/* ---------- セッション判定（日本時間） ---------- */
+function sessionNow(){
+  const now=new Date();
+  const h=now.getHours()+now.getMinutes()/60;
+  const day=now.getDay(); // 0=日
+  let key,note;
+  if(day===0||(day===6)){key="closed";note="週末は市場クローズ。月曜早朝の窓開けに注意。";}
+  else if(h>=8&&h<15){key="tokyo_quiet";note="<b>東京時間</b>。仲値(9:55)前後をのぞき値動きは穏やか。じっくり環境を見るのに向いた時間。";}
+  else if(h>=15&&h<21){key="london";note="<b>ロンドン時間</b>に突入。ボラが上がり始める。トレンドが出やすい時間帯。";}
+  else if(h>=21||h<2){key="london_ny";note="<b>ロンドン・NY重複</b>。1日で最も活発。値幅は取りやすいが急変にも注意。";}
+  else {key="quiet";note="深夜〜早朝。流動性が薄く、スプレッドが開きやすい。初心者は無理しない時間。";}
+  return {key,note,h,day};
+}
+// セッション帯（JST, 0-24）
+const SESS_BANDS=[
+  {nm:"東京", s:8, e:16, col:"#46d6cf"},
+  {nm:"ロンドン", s:16, e:25, col:"#e7b24b"},
+  {nm:"ニューヨーク", s:21, e:30, col:"#f25563"}
+];
+
+/* ---------- 指標カードのテキスト化 ---------- */
+/* ---------- 指標を3グループに整理（ゲージ・方向・読み方つき） ---------- */
+function buildIndicatorGroups(series){
+  const a=analyze(series);
+  const c=closes(series);
+  const r=rsi(c), m=macd(c), st=stoch(series), ax=adx(series);
+  // 方向：直近の有効値と3本前を比較
+  const backVal=(arr)=>{const v=lastN(arr,4); return v.length>=2?v[0]:last(arr);};
+  const arrow=(now,prev,dead)=>{
+    if(now==null||prev==null) return ["→","横ばい","fl"];
+    return (now-prev>dead)?["▲","上昇中","up"]:(prev-now>dead)?["▼","下降中","dn"]:["→","横ばい","fl"];
+  };
+  // MACDヒストの表示スケール（直近の振れ幅）
+  let mmx=0; for(const v of lastN(m.hist,VIEW_N))mmx=Math.max(mmx,Math.abs(v)); mmx=mmx||Math.abs(a.macdHist)||1;
+
+  const I = {
+    maOrder:{
+      nm:"移動平均の並び", val:a.order==="up"?"上昇で整列":a.order==="down"?"下降で整列":"バラバラ",
+      status:a.order==="up"?["パーフェクトオーダー↑","g"]:a.order==="down"?["パーフェクトオーダー↓","r"]:["整列なし","a"],
+      gauge:{min:-1,max:1,value:a.order==="up"?1:a.order==="down"?-1:0,zones:[{f:-1,t:-0.33,c:"r"},{f:-0.33,t:0.33,c:"a"},{f:0.33,t:1,c:"g"}],scale:[{v:-0.66,l:"下降"},{v:0,l:"混在"},{v:0.66,l:"上昇"}]},
+      dir:arrow(a.slope,0,0.02),
+      what:"短期(20)・中期(50)・長期(200)の移動平均が一方向に綺麗に並んだ状態＝パーフェクトオーダーは、強いトレンドの証拠。価格がどの線の上/下にいるかで地合いが分かる。",
+      read:a.order==="up"?"上向きに整列。<b>押し目買いが最も機能しやすい</b>並び。":
+           a.order==="down"?"下向きに整列。<b>戻り売りが機能しやすい</b>。買いは流れに逆らう形。":
+           "並びが崩れていて<b>方向が定まっていない</b>。様子見も有効。"
+    },
+    macd:{
+      nm:"MACD", val:(a.macdHist>=0?"+":"")+a.macdHist.toFixed(a.price>50?2:4),
+      status:(a.macd>a.macdSig)?["上昇シグナル","g"]:["下降シグナル","r"],
+      gauge:{min:-mmx,max:mmx,value:Math.max(-mmx,Math.min(mmx,a.macdHist)),zones:[{f:-mmx,t:0,c:"r"},{f:0,t:mmx,c:"g"}],scale:[{v:-mmx*0.6,l:"弱気"},{v:0,l:"0"},{v:mmx*0.6,l:"強気"}]},
+      dir:arrow(a.macdHist,backVal(m.hist),mmx*0.05),
+      what:"2本の移動平均の差から、トレンドの向きと勢いを読む。0ラインより上なら上昇優勢、下なら下降優勢。0に近づくほど勢いが弱まっているサイン。",
+      read:(a.macd>a.macdSig)?"シグナルを上回り<b>上昇に勢い</b>。0ラインより上ほど強い。":
+           "シグナルを下回り<b>下降に勢い</b>。戻りは売られやすい。"
+    },
+    adx:{
+      nm:"ADX", val:Math.round(a.adx)+"",
+      status:a.adx>=25?["強いトレンド","g"]:a.adx>=20?["発生の初動","a"]:["トレンドなし","n"],
+      gauge:{min:0,max:50,value:Math.min(50,a.adx),zones:[{f:0,t:20,c:"n"},{f:20,t:25,c:"a"},{f:25,t:50,c:"g"}],scale:[{v:20,l:"20"},{v:25,l:"25"},{v:42,l:"トレンド"}]},
+      dir:arrow(a.adx,backVal(ax.adx),1),
+      what:"トレンドの『強さ』だけを測る（向きは問わない）。25以上で明確なトレンド、20未満はレンジの目安。上昇中なら勢いが増している。",
+      read:a.adx>=25?"明確なトレンド。<b>順張りが有効</b>、逆張りは危険。":
+           a.adx>=20?"トレンドが出始め。<b>方向確認しつつ早めの追随</b>を。":
+           "トレンドが弱くレンジ。<b>逆張り（安値買い・高値売り）向き</b>、順張りはダマシ注意。"
+    },
+    rsi:{
+      nm:"RSI", val:Math.round(a.rsi)+"",
+      status:a.rsi>=70?["買われすぎ","r"]:a.rsi<=30?["売られすぎ","g"]:["中立","n"],
+      gauge:{min:0,max:100,value:a.rsi,zones:[{f:0,t:30,c:"g"},{f:30,t:70,c:"n"},{f:70,t:100,c:"r"}],scale:[{v:30,l:"30"},{v:50,l:"50"},{v:70,l:"70"}]},
+      dir:arrow(a.rsi,backVal(r),1.5),
+      what:"値動きの『勢い』を0〜100で表す。70以上で買われすぎ（反落注意）、30以下で売られすぎ（反発余地）。中間は過熱感なし。",
+      read:a.rsi>=70?"過熱気味。新規の高値追いは<b>高値掴みリスク</b>、押し目待ちが無難。":
+           a.rsi<=30?"売られすぎ。<b>反発の可能性</b>。ただし下落トレンド中はさらに沈むことも。":
+           "<b>過熱感なし</b>。トレンド方向のエントリーを検討しやすいゾーン。"
+    },
+    stoch:{
+      nm:"ストキャスティクス", val:Math.round(a.stochK)+"",
+      status:a.stochK>=80?["買われすぎ","r"]:a.stochK<=20?["売られすぎ","g"]:["中立","n"],
+      gauge:{min:0,max:100,value:a.stochK,zones:[{f:0,t:20,c:"g"},{f:20,t:80,c:"n"},{f:80,t:100,c:"r"}],scale:[{v:20,l:"20"},{v:50,l:"50"},{v:80,l:"80"}]},
+      dir:arrow(a.stochK,backVal(st.k),2),
+      what:"直近の高値〜安値の中で今の価格がどの位置かを示す。RSIより短期の反転を捉えやすい。80超で高値圏、20割れで安値圏。",
+      read:a.stochK>=80?"短期的に高値圏。<b>短期の反落</b>に注意。":
+           a.stochK<=20?"短期的に安値圏。<b>短期の反発</b>を意識。":"中間。短期の偏りは小さい。"
+    },
+    bb:{
+      nm:"ボリンジャー幅", val:a.bw.toFixed(2)+"%",
+      status:a.bwRatio>=1.4?["拡大（変動大）","a"]:a.bwRatio<=0.7?["収縮（エネルギー蓄積）","n"]:["標準","g"],
+      gauge:{min:0.4,max:1.8,value:Math.max(0.4,Math.min(1.8,a.bwRatio)),zones:[{f:0.4,t:0.7,c:"n"},{f:0.7,t:1.4,c:"g"},{f:1.4,t:1.8,c:"a"}],scale:[{v:0.7,l:"収縮"},{v:1.05,l:"標準"},{v:1.4,l:"拡大"}]},
+      dir:arrow(a.bwRatio,1,0.04),
+      what:"価格の散らばり（変動の大きさ）。バンドが収縮した後は大きく動き出しやすい。拡大中はトレンド進行中のことが多い。",
+      read:a.bwRatio>=1.4?"バンド拡大中。<b>トレンド進行中</b>でフォローが効くが、終盤の急反転に注意。":
+           a.bwRatio<=0.7?"収縮中。<b>放れ（ブレイク）の前兆</b>。動き出す方向についていく準備を。":"標準的な値幅。"
+    },
+    atr:{
+      nm:"ATR（変動幅）", val:a.atrPct.toFixed(2)+"%",
+      status:a.atrRatio>=1.18?["ボラ高","a"]:a.atrRatio<=0.82?["ボラ低","n"]:["平常","g"],
+      gauge:{min:0.5,max:1.6,value:Math.max(0.5,Math.min(1.6,a.atrRatio)),zones:[{f:0.5,t:0.82,c:"n"},{f:0.82,t:1.18,c:"g"},{f:1.18,t:1.6,c:"a"}],scale:[{v:0.82,l:"低"},{v:1.0,l:"平常"},{v:1.18,l:"高"}]},
+      dir:arrow(a.atrRatio,1,0.04),
+      what:"1本のローソク足が平均どれくらい動くか。損切り幅やロット量を決める目安になる。普段より大きい＝振られやすい。",
+      read:a.atrRatio>=1.18?"普段より大きく動いている。<b>損切りは広め・枚数は控えめ</b>に。スキャルは振られやすい。":
+           a.atrRatio<=0.82?"値動きが小さい。<b>利幅も取りにくい</b>。スキャルはスプレッド負けに注意。":"平常の値動き。通常どおりのリスク管理で対応しやすい。"
+    }
+  };
+
+  // グループ要約
+  let trendSum, trendCls, trendMap;
+  if(a.adx<20){
+    trendSum="トレンドなし（レンジ）"; trendCls="a"; trendMap="→ レンジ向き（逆張り）。スイングには不利。";
+  } else {
+    const up = a.order==="up" || (a.order!=="down" && a.macd>a.macdSig);
+    const strong = a.adx>=25;
+    const word = strong ? (a.order!=="mix"?"強い":"") : "";
+    const tail = strong ? "" : "（発生の初動）";
+    trendSum = word+(up?"上昇":"下降")+"トレンド"+tail;
+    trendCls = strong ? "g" : "a";
+    trendMap = up ? "→ スイング・デイトレ（買い）を後押し。" : "→ スイング・デイトレ（売り）を後押し。";
+  }
+
+  const hot=(a.rsi>=70&&a.stochK>=80)?1:(a.rsi<=30&&a.stochK<=20)?-1:0;
+  let hotSum,hotCls,hotMap;
+  if(hot===1){ hotSum="買われすぎ（短期反落に注意）"; hotCls="r"; hotMap="→ 新規の高値追いは見送り、押し目待ち。"; }
+  else if(hot===-1){ hotSum="売られすぎ（反発の余地）"; hotCls="g"; hotMap="→ 反発・逆張りを意識（トレンドには逆らわない）。"; }
+  else { hotSum="過熱感なし（中立）"; hotCls="g"; hotMap="→ トレンド方向にエントリーしやすい。"; }
+
+  // STEP3（勢い・リスク）の要約
+  const momUp = a.macd>a.macdSig;
+  const volNote = a.atrRatio>=1.18?"値動き大（損切りは広めに）":a.atrRatio<=0.82?"値動き小（無理に追わない）":"ボラは平常";
+  const s3sum = (momUp?"上昇の勢いあり":"下降の勢いあり")+" ／ "+volNote;
+  const s3cls = "n";
+  const s3map = "→ 入る前に損切り位置（ATRの1.5倍が目安）を必ず決める。";
+
+  return [
+    {step:1, q:"まず『大きな流れ』を確認",
+     teach:"プロが最初に見るのは方向。トレンドに逆らわないのが一番の鉄則です。",
+     sum:trendSum, cls:trendCls, map:trendMap, items:[I.maOrder,I.adx]},
+    {step:2, q:"次に『今の位置』を見る",
+     teach:"流れが分かったら、今が高値づかみになる場所か、押し目・戻りの好機かを確かめます。",
+     sum:hotSum, cls:hotCls, map:hotMap, items:[I.rsi,I.stoch]},
+    {step:3, q:"最後に『勢いとリスク』",
+     teach:"勢いを確認し、損切り幅を決める。どこで撤退するかを先に決めてから入るのがプロのやり方。",
+     sum:s3sum, cls:s3cls, map:s3map, items:[I.macd,I.bb,I.atr]}
+  ];
+}
+
+/* ---------- エントリー目安（トリガー）の生成 ---------- */
+function computeTrigger(a, reg, mtfUp, mtfDn, series, eventSoon, pair){
+  pair=pair||CURRENT;
+  const pdec=PAIR_DEF[pair].dec;
+  const c=closes(series), hh=highs(series), ll=lows(series);
+  const recentHigh=Math.max(...hh.slice(-20)), recentLow=Math.min(...ll.slice(-20));
+  const atrPrice=a.atrPct/100*a.price, stop=atrPrice*1.5;
+  const isJpy=pair.endsWith("JPY");
+  const pip=isJpy?0.01:0.0001;
+  const stopPips=Math.round(stop/pip);
+  const f=v=>v.toLocaleString("ja-JP",{minimumFractionDigits:pdec,maximumFractionDigits:pdec});
+  const aligned = mtfUp===3?"up":mtfDn===3?"down":(mtfUp>=2?"up_weak":mtfDn>=2?"down_weak":"none");
+  const styleSpan = {swing:"スイング（数日〜数週間）",day:"デイトレ（1日〜数日）",scalp:"スキャル（数分〜数時間）"}[HORIZON];
+
+  let main, cls, levels, chartLevels;
+  if(reg.trend==="range"){
+    cls="a";
+    main=`<b>レンジの逆張り目安</b>：下限 ${f(recentLow)} 付近で買い／上限 ${f(recentHigh)} 付近で売り。どちらかを明確に抜けたら（放れ）、抜けた方向に順張りで乗り換える。`;
+    levels=[["買い目安（下限）",f(recentLow)],["売り目安（上限）",f(recentHigh)],["損切り目安(値幅)",`±${stopPips} pips`],["想定スパン",styleSpan]];
+    chartLevels=[{price:recentLow,label:"買い(下限)",cls:"g"},{price:recentHigh,label:"売り(上限)",cls:"r"}];
+  } else if(aligned==="up"||aligned==="up_weak"){
+    cls=aligned==="up"?"g":"a";
+    if(a.rsi>=70){
+      main=`上昇トレンドだが<b>RSIが過熱気味</b>。今の高値追いは見送り、<b>20日線(${f(a.s20)})付近への押し目</b>を待って買いを検討。`;
+    } else {
+      main=`<b>押し目買い目安</b>：${f(a.s20)}（20日線）付近への下げを待って、上昇トレンド方向に買いを検討。直近安値 ${f(recentLow)} を割れたらシナリオ崩れ＝撤退。`;
+    }
+    levels=[["押し目買い目安",f(a.s20)],["シナリオ崩れ",f(recentLow)],["損切り目安(値幅)",`約 ${stopPips} pips`],["想定スパン",styleSpan]];
+    chartLevels=[{price:a.s20,label:"押し目買い",cls:"g"},{price:recentLow,label:"撤退",cls:"r"}];
+    if(aligned==="up_weak") main+=` <span style="color:var(--amber)">※時間軸が完全には揃っていないので、まず日足の向き優先で。</span>`;
+  } else if(aligned==="down"||aligned==="down_weak"){
+    cls=aligned==="down"?"g":"a";
+    if(a.rsi<=30){
+      main=`下降トレンドだが<b>RSIが売られすぎ</b>。今の戻り売りは反発に注意。<b>20日線(${f(a.s20)})付近への戻り</b>を待って売りを検討。`;
+    } else {
+      main=`<b>戻り売り目安</b>：${f(a.s20)}（20日線）付近への戻りを待って、下降トレンド方向に売りを検討。直近高値 ${f(recentHigh)} を超えたらシナリオ崩れ＝撤退。`;
+    }
+    levels=[["戻り売り目安",f(a.s20)],["シナリオ崩れ",f(recentHigh)],["損切り目安(値幅)",`約 ${stopPips} pips`],["想定スパン",styleSpan]];
+    chartLevels=[{price:a.s20,label:"戻り売り",cls:"g"},{price:recentHigh,label:"撤退",cls:"r"}];
+    if(aligned==="down_weak") main+=` <span style="color:var(--amber)">※時間軸が完全には揃っていないので、まず日足の向き優先で。</span>`;
+  } else {
+    cls="a";
+    main=`<b>時間軸の向きがバラバラで方向が不明</b>。今は無理にエントリーせず、向きが揃うのを待つのが無難。${f(recentLow)}〜${f(recentHigh)} のどちらかを明確に抜けたら方向が出やすい。`;
+    levels=[["上抜けで強気",f(recentHigh)],["下抜けで弱気",f(recentLow)],["損切り目安(値幅)",`約 ${stopPips} pips`],["想定スパン","方向待ち"]];
+    chartLevels=[{price:recentHigh,label:"上抜けで強気",cls:"g"},{price:recentLow,label:"下抜けで弱気",cls:"r"}];
+  }
+
+  // エントリー条件チェックリスト（揃うほど優位）
+  const trendOk = reg.trend!=="range" && aligned!=="none";
+  const alignOk = aligned==="up" || aligned==="down";
+  const timingOk = !(aligned.startsWith("up") && a.rsi>=70) && !(aligned.startsWith("down") && a.rsi<=30) && reg.trend!=="range";
+  const eventOk = !eventSoon;
+  const checklist=[
+    {ok:trendOk, label:"方向がはっきりしている", hint:trendOk?"トレンドが出ている":"レンジ/方向不明"},
+    {ok:alignOk, label:"時間軸が揃っている（日足・4H・1H）", hint:alignOk?"3つ一致":"バラつきあり"},
+    {ok:timingOk, label:"過熱せず、押し目・戻りを狙える", hint:timingOk?"高値/安値づかみでない":"過熱気味 or レンジ"},
+    {ok:eventOk, label:"直前に重要指標がない", hint:eventOk?"落ち着いた環境":"イベント接近中"}
+  ];
+  const okCount=checklist.filter(x=>x.ok).length;
+  let clCls, clMsg;
+  if(reg.trend==="range"){ clCls="a"; clMsg=`レンジ局面。トレンド狙いの条件は揃いにくい。逆張りか、放れを待つ。`; }
+  else if(okCount===4){ clCls="g"; clMsg=`4条件すべて合致。${aligned.startsWith("up")?"押し目":"戻り"}を待ってエントリー検討の好機。`; }
+  else if(okCount===3){ clCls="g"; clMsg=`4条件中3つ合致。あと1つ（${checklist.find(x=>!x.ok).label}）が整えば優位。`; }
+  else if(okCount===2){ clCls="a"; clMsg=`4条件中2つ。条件待ち。無理に入らない。`; }
+  else { clCls="r"; clMsg=`条件が不足。今は見送りが無難。`; }
+
+  let note="";
+  if(eventSoon) note=`⚠️ ${eventSoon.name} が約${Math.max(0,Math.round(eventSoon.hrs))}時間後。発表前後はボラ急変。トリガーに達しても、初心者は通過後を待つのが無難。`;
+  return {main, cls, levels, chartLevels, checklist, okCount, clCls, clMsg, note, span:styleSpan};
+}
+
+/* ---------- デモ：重要指標カレンダー ---------- */
+function demoEvents(){
+  const now=new Date();
+  const mk=(addDays,h,m)=>{const d=new Date(now);d.setDate(d.getDate()+addDays);d.setHours(h,m,0,0);return d;};
+  return [
+    {dt:mk(0,21,30), name:"米 小売売上高", imp:"m", cc:"USD"},
+    {dt:mk(1,22,30), name:"米 CPI（消費者物価指数）", imp:"h", cc:"USD"},
+    {dt:mk(2,3,0),   name:"FOMC 政策金利発表", imp:"h", cc:"USD"},
+    {dt:mk(3,8,50),  name:"日銀 金融政策決定会合", imp:"h", cc:"JPY"},
+    {dt:mk(4,21,30), name:"米 雇用統計", imp:"h", cc:"USD"}
+  ].map(e=>({...e, hrs:(e.dt-now)/36e5})).filter(e=>e.hrs>-2);
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+let CURRENT="USD/JPY";
+let SALT=0; // 更新ごとに変えてデモ値を動かす
+let CHART_TF="1D";
+const OVERLAYS={ma:true, bb:true};
+const VIEW_N=64; // チャートに表示する直近本数
+let CHART_LEVELS=[];      // チャートに重ねるトリガーの数値レベル
+let PRICE_GEO=null;       // クロスヘア用のチャートジオメトリ
+let CURRENT_SNAPSHOT=null; // 日誌に保存する「記録時の地合い」
+let HORIZON="swing";      // 取引スタイル＝基準時間軸（swing=日足/day=4H/scalp=1H）
+const HORIZON_TF={swing:"1D", day:"4H", scalp:"1H"};
+const HORIZON_NAME={swing:"スイング", day:"デイトレ", scalp:"スキャル"};
+let ACTIVE_PAIRS=Object.keys(PAIR_DEF); // 表示するペア（設定で変更可）
+let DEFAULT_TAB="summary";
+const SKEY="fxnavi_settings_v1";
+function loadSettings(){
+  try{const s=JSON.parse(localStorage.getItem(SKEY)||"{}");
+    if(s.horizon&&HORIZON_TF[s.horizon])HORIZON=s.horizon;
+    if(Array.isArray(s.pairs)&&s.pairs.length)ACTIVE_PAIRS=s.pairs.filter(p=>PAIR_DEF[p]);
+    if(s.tab)DEFAULT_TAB=s.tab;
+    if(typeof s.apiKey==="string"){ DATA_CONFIG.apiKey=s.apiKey; DATA_CONFIG.source=s.apiKey?"live":"demo"; }
+    if(ACTIVE_PAIRS.length&&!ACTIVE_PAIRS.includes(CURRENT))CURRENT=ACTIVE_PAIRS[0];
+  }catch(e){}
+}
+function saveSettings(){
+  try{localStorage.setItem(SKEY,JSON.stringify({horizon:HORIZON,pairs:ACTIVE_PAIRS,tab:DEFAULT_TAB,apiKey:DATA_CONFIG.apiKey}));}catch(e){}
+}
+const $=id=>document.getElementById(id);
+const fmt=(v,dec)=>v==null?"--":v.toLocaleString("ja-JP",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+
+function pairStatus(pair){
+  const tf=HORIZON_TF[HORIZON];
+  const aP=analyze(loadSeries(pair,tf)); const regP=regimeOf(aP);
+  let u=0,dn=0; for(const t of ["1H","4H","1D"]){const dr=analyze(loadSeries(pair,t)).dir; if(dr==="up")u++; if(dr==="down")dn++;}
+  const trig=computeTrigger(aP,regP,u,dn,loadSeries(pair,tf),null,pair);
+  let dot, trendTxt;
+  if(regP.trend==="range"){ dot="n"; trendTxt="レンジ"; }
+  else { const up=aP.order==="up"||(aP.order!=="down"&&aP.macd>aP.macdSig);
+    dot=regP.trend==="strong"?"g":"a"; trendTxt=(up?"上昇":"下降")+(regP.trend==="strong"?"・強":"・初動"); }
+  return {dot, trendTxt, cond:trig.okCount, clCls:trig.clCls, isRange:regP.trend==="range"};
+}
+
+function buildPairs(){
+  const cont=$("pairs"); cont.innerHTML="";
+  ACTIVE_PAIRS.forEach(p=>{
+    const s1=loadSeries(p,"1H"); const c=closes(s1);
+    const chg=c[c.length-1]-c[c.length-25];
+    const d=PAIR_DEF[p];
+    const st=pairStatus(p);
+    const el=document.createElement("div");
+    el.className="pair"+(p===CURRENT?" active":"");
+    el.innerHTML=`<div class="pn"><span class="pdot ${st.dot}"></span>${p}</div>
+      <div class="pp num">${fmt(c[c.length-1],d.dec)}</div>
+      <div class="pc num ${chg>=0?'arr-up':'arr-dn'}">${chg>=0?'▲':'▼'} ${fmt(Math.abs(chg),d.dec)}</div>`;
+    el.onclick=()=>{CURRENT=p; renderAll();};
+    cont.appendChild(el);
+  });
+}
+
+function renderWatchlist(){
+  const wl=$("watchlist"); if(!wl) return; wl.innerHTML="";
+  ACTIVE_PAIRS.forEach(p=>{
+    const st=pairStatus(p); const d=PAIR_DEF[p];
+    const c=closes(loadSeries(p,"1H")); const px=fmt(c[c.length-1],d.dec);
+    const good=(!st.isRange && st.cond>=3);
+    const row=document.createElement("div"); row.className="wl-row"+(p===CURRENT?" cur":"");
+    row.innerHTML=`<span class="wl-pair"><span class="pdot ${st.dot}"></span>${good?'<span class="wl-star">◎</span>':''}${p}</span>
+      <span class="wl-px num">${px}</span>
+      <span class="wl-trend t-${st.dot}">${st.trendTxt}</span>
+      <span class="wl-cond c-${st.isRange?'n':st.clCls}">${st.isRange?'—':st.cond+'/4'}</span>`;
+    row.onclick=()=>{CURRENT=p; renderAll(); window.scrollTo(0,0);};
+    wl.appendChild(row);
+  });
+}
+
+function renderAll(){
+  const d=PAIR_DEF[CURRENT];
+  const s1=loadSeries(CURRENT,"1H"), s4=loadSeries(CURRENT,"4H"), sd=loadSeries(CURRENT,"1D");
+  const a1=analyze(s1), a4=analyze(s4), aD=analyze(sd);
+  const reg1=regimeOf(a1), reg4=regimeOf(a4), regD=regimeOf(aD);
+  const session=sessionNow();
+  // スタイルごとに「その本来の時間軸」で適性を判定（スキャル=1H/デイ=4H/スイング=日足）
+  const sc={
+    scalp: styleScores(a1,reg1,session).scalp,
+    day:   styleScores(a4,reg4,session).day,
+    swing: styleScores(aD,regD,session).swing
+  };
+  // 選択中スタイル = primary（チャート・指標・トリガーの基準時間軸）
+  const HMAP={swing:{a:aD,reg:regD,s:sd},day:{a:a4,reg:reg4,s:s4},scalp:{a:a1,reg:reg1,s:s1}};
+  const H=HMAP[HORIZON]; const aP=H.a, regP=H.reg, sP=H.s;
+  const scP=styleScores(aP,regP,session);
+
+  // pairs（価格更新＋状態ドット）
+  buildPairs();
+  renderWatchlist();
+
+  // verdict price
+  const c=closes(s1);
+  const chg=c[c.length-1]-c[c.length-25];
+  const chgPct=chg/c[c.length-25]*100;
+  $("px").textContent=fmt(a1.price,d.dec);
+  const ch=$("ch"); ch.className="ch "+(chg>=0?"up":"down");
+  ch.textContent=(chg>=0?"+":"")+fmt(chg,d.dec)+" ("+(chg>=0?"+":"")+chgPct.toFixed(2)+"%)";
+  $("dayrange").textContent=d.label+" ・ 直近24h";
+
+  // headline（選択スタイル目線）
+  const best=[["スイング",sc.swing.v],["デイトレ",sc.day.v],["スキャル",sc.scalp.v]].sort((x,y)=>y[1]-x[1])[0];
+  const hName=HORIZON_NAME[HORIZON];
+  const regimeWord = regP.trend==="strong"?"トレンド相場":regP.trend==="emerging"?"トレンド発生の初動":"レンジ相場";
+  const volWord = regP.vol==="high"?"・値動き大":regP.vol==="low"?"・動意薄":"";
+  const tfWord = {swing:"日足ベース",day:"4時間足ベース",scalp:"1時間足ベース"}[HORIZON];
+  $("headline").innerHTML=`<span class="hl">${hName}目線</span>：${regimeWord}${volWord}`;
+  const matchTxt = best[0]===hName ? "市場も今このスタイル向き。" : `市場が今いちばん向くのは「${best[0]}」。`;
+  $("headlineSub").textContent=`${tfWord}で判定。${matchTxt}${session.key==="tokyo_quiet"?"東京時間で穏やか。":session.key==="london_ny"?"活発な時間帯。":""}`;
+
+  // style lamps（タップで時間軸切替）
+  const styles=$("styles"); styles.innerHTML="";
+  const styleArr=[["スキャル","scalp",sc.scalp],["デイトレ","day",sc.day],["スイング","swing",sc.swing]];
+  const bestV=Math.max(sc.scalp.v,sc.day.v,sc.swing.v);
+  styleArr.forEach(([nm,key,o])=>{
+    const cls=o.mk[1];
+    const isBest=o.v===bestV;
+    const isSel=key===HORIZON;
+    const word=o.v>=70?"向いている":o.v>=55?"まあ可":o.v>=40?"やや不向き":"不向き";
+    const el=document.createElement("div");
+    el.className="style "+cls+(isBest?" best":"")+(isSel?" selected":"");
+    el.innerHTML=`${isBest?'<div class="best-tag">おすすめ</div>':''}<div class="lamp ${cls}"></div>
+      <div class="nm">${nm}</div>
+      <div class="mk">${o.mk[0]}</div>
+      <div class="sc">${word}</div>
+      <div class="bar"><i style="width:${o.v}%"></i></div>
+      <div class="sel-tag">${isSel?"選択中":"切替"}</div>`;
+    el.onclick=()=>setHorizon(key);
+    styles.appendChild(el);
+  });
+
+  // reasons
+  const rs=$("styleReasons"); rs.innerHTML="";
+  scP.reasons.forEach(([cls,tag,txt])=>{
+    const el=document.createElement("div"); el.className="sr "+cls;
+    el.innerHTML=`<span class="dot"></span><span><b>${tag}</b> — ${txt}</span>`;
+    rs.appendChild(el);
+  });
+
+  // MTF（コンパクト版・ステップ1に埋め込む）
+  const tfRows=[["日足",aD],["4時間",a4],["1時間",a1]];
+  let upCnt=0,dnCnt=0;
+  const mtfChips=tfRows.map(([nm,aa])=>{
+    if(aa.dir==="up")upCnt++; if(aa.dir==="down")dnCnt++;
+    const ar=aa.dir==="up"?["▲","up","上昇"]:aa.dir==="down"?["▼","dn","下降"]:["▬","fl","横ばい"];
+    return `<div class="tfchip ${ar[1]}"><span class="tfn">${nm}</span><span class="tfa">${ar[0]}</span><span class="tfd">${ar[2]}</span></div>`;
+  }).join("");
+  let mtfVerdict, mtfVCls;
+  if(upCnt===3||dnCnt===3){ mtfVCls="g"; mtfVerdict=`3つの時間軸が${upCnt===3?"上昇":"下降"}で一致 → <b>${upCnt===3?"買い":"売り"}方向が最も優位</b>`; }
+  else if(upCnt>=2||dnCnt>=2){ mtfVCls="a"; mtfVerdict=`多数派は${upCnt>=2?"上昇":"下降"}（${Math.max(upCnt,dnCnt)}/3）→ 日足の向き優先、逆行する足は深追いしない`; }
+  else { mtfVCls="a"; mtfVerdict="時間軸がバラバラ → 揃うまで様子見が無難"; }
+  const mtfMini=`<div class="mtf-mini"><div class="mtf-lab">時間軸の向き（長い足ほど優先）</div><div class="tfchips">${mtfChips}</div><div class="mtf-verdict ${mtfVCls}">${mtfVerdict}</div></div>`;
+
+  // session clock
+  const sess=$("sess"); sess.innerHTML="";
+  const nowH=session.h;
+  SESS_BANDS.forEach(b=>{
+    const trk=document.createElement("div"); trk.className="sline";
+    const left=(b.s/24)*100, width=((b.e-b.s)/24)*100;
+    trk.innerHTML=`<div class="snm">${b.nm}</div>
+      <div class="track"><i style="left:${left}%;width:${Math.min(100-left,width)}%;background:${b.col}"></i>
+      <div class="nowline" style="left:${(Math.min(nowH,24)/24)*100}%"></div></div>`;
+    sess.appendChild(trk);
+  });
+  $("sessNote").innerHTML=session.note;
+
+  // indicators → プロの読み方（3ステップ）
+  const ind=$("indicators"); ind.innerHTML="";
+  const gaugeHTML=(it,uid)=>{
+    const g=it.gauge, span=g.max-g.min, pct=v=>Math.max(0,Math.min(100,(v-g.min)/span*100));
+    const zones=g.zones.map(z=>`<span class="gzone gz-${z.c}" style="left:${pct(z.f)}%;width:${pct(z.t)-pct(z.f)}%"></span>`).join("");
+    const ticks=g.zones.slice(0,-1).map(z=>`<span class="gtick" style="left:${pct(z.t)}%"></span>`).join("");
+    const scale=(g.scale||[]).map(s=>`<span style="left:${pct(s.v)}%">${s.l}</span>`).join("");
+    return `<div class="icard" id="${uid}">
+      <div class="ic-top">
+        <span class="pill ${it.status[1]}">${it.status[0]}</span>
+        <span class="nm">${it.nm}</span>
+        <span class="dir ${it.dir[2]}">${it.dir[0]} ${it.dir[1]}</span>
+        <span class="val num">${it.val}</span>
+      </div>
+      <div class="gbar">${zones}${ticks}<span class="gmark" style="left:${pct(g.value)}%"></span></div>
+      <div class="gscale">${scale}</div>
+      <div class="ic-read">${it.read}</div>
+      <span class="ic-what-btn">＋ これ何？</span>
+      <div class="ic-what">${it.what}</div>
+    </div>`;
+  };
+  buildIndicatorGroups(sP).forEach(group=>{
+    const gEl=document.createElement("div"); gEl.className="step";
+    let body=group.items.map((it,idx)=>gaugeHTML(it,`ic_s${group.step}_${idx}`)).join("");
+    if(group.step===1) body=mtfMini+body; // 時間軸の一致度をステップ1の先頭へ
+    gEl.innerHTML=`
+      <div class="step-head">
+        <span class="step-no">${group.step}</span>
+        <div class="step-txt"><div class="step-q">${group.q}</div><div class="step-teach">${group.teach}</div></div>
+      </div>
+      <div class="igsum ${group.cls}"><b>${group.sum}</b> <span class="igmap">${group.map}</span></div>
+      ${body}`;
+    ind.appendChild(gEl);
+  });
+  ind.querySelectorAll(".ic-what-btn").forEach(b=>{
+    b.onclick=()=>{ const card=b.parentElement; const open=card.classList.toggle("open");
+      b.textContent=open?"− 閉じる":"＋ これ何？"; };
+  });
+
+  // events
+  const evEl=$("events"); evEl.innerHTML="";
+  const events=demoEvents();
+  events.slice(0,5).forEach(e=>{
+    const el=document.createElement("div"); el.className="ev";
+    const wd=["日","月","火","水","木","金","土"][e.dt.getDay()];
+    const hrsTxt=e.hrs<0?"進行中":e.hrs<24?`約${Math.round(e.hrs)}h後`:`${Math.round(e.hrs/24)}日後`;
+    el.innerHTML=`<div class="when"><b>${e.dt.getMonth()+1}/${e.dt.getDate()}(${wd})</b>${e.dt.getHours()}:${String(e.dt.getMinutes()).padStart(2,"0")}</div>
+      <div class="imp ${e.imp}"></div>
+      <div class="et">${e.name} <small>[${e.cc}] ${hrsTxt}</small></div>`;
+    evEl.appendChild(el);
+  });
+  // event warning
+  const soon=events.find(e=>e.imp==="h"&&e.hrs>=-1&&e.hrs<=6);
+  const ew=$("eventWarn");
+  if(soon){
+    ew.className="ev-warn";
+    ew.innerHTML=`⚠️ <b>${soon.name}</b> が約${Math.max(0,Math.round(soon.hrs))}時間後。発表前後はボラが急変しやすく、初心者は<b>新規エントリーを見送る</b>のが無難。`;
+  }else{
+    ew.className="ev-warn calm";
+    ew.innerHTML=`✓ 直近6時間に最重要指標の予定なし。比較的落ち着いて判断できる環境。`;
+  }
+
+  // status bar（全体を一目で）
+  const eventSoon24=events.find(e=>e.imp==="h"&&e.hrs>=-1&&e.hrs<=24);
+  const sb=$("statusBar");
+  const trendPill = regP.trend==="range"
+    ? {t:"レンジ", c:"a"}
+    : {t:(aP.order==="up"||(aP.order!=="down"&&aP.macd>aP.macdSig)?"上昇":"下降")+"トレンド"+(regP.trend==="strong"?"・強":"・初動"), c:regP.trend==="strong"?"g":"a"};
+  const volPill = regP.vol==="high"?{t:"ボラ高",c:"a"}:regP.vol==="low"?{t:"ボラ低",c:"n"}:{t:"ボラ平常",c:"g"};
+  const align = (upCnt===3||dnCnt===3) ? {t:"時間軸 揃った("+Math.max(upCnt,dnCnt)+"/3)",c:"g"}
+              : (upCnt>=2||dnCnt>=2) ? {t:"時間軸 やや一致("+Math.max(upCnt,dnCnt)+"/3)",c:"a"}
+              : {t:"時間軸 バラバラ",c:"r"};
+  const sessName={tokyo_quiet:"東京",london:"ロンドン",london_ny:"ロンドン・NY",quiet:"深夜",closed:"クローズ"}[session.key]||"";
+  const sessPill={t:"時間帯 "+sessName, c:(session.key==="london_ny"||session.key==="london")?"g":session.key==="tokyo_quiet"?"a":"n"};
+  const evPill = eventSoon24?{t:"重要指標 接近注意",c:"r"}:{t:"重要指標 なし",c:"g"};
+  const pills=[trendPill,volPill,align,sessPill,evPill];
+  sb.innerHTML=pills.map(p=>`<span class="spill ${p.c}">${p.t}</span>`).join("");
+
+  // trigger（エントリー目安）
+  const trig=computeTrigger(aP, regP, upCnt, dnCnt, sP, eventSoon24);
+  // エントリー条件チェックリスト
+  const clEl=$("checklist"); clEl.innerHTML="";
+  trig.checklist.forEach(item=>{
+    const el=document.createElement("div"); el.className="cl-item "+(item.ok?"ok":"ng");
+    el.innerHTML=`<span class="cl-mark">${item.ok?"✓":"×"}</span><span class="cl-lab">${item.label}</span><span class="cl-hint">${item.hint}</span>`;
+    clEl.appendChild(el);
+  });
+  const cs=$("clSummary"); cs.className="cl-summary "+trig.clCls;
+  cs.innerHTML=`<b>条件 ${trig.okCount}/4</b> ${trig.clMsg}`;
+  $("trigMain").innerHTML=trig.main;
+  const tl=$("trigLevels"); tl.innerHTML="";
+  trig.levels.forEach(([k,v])=>{
+    const el=document.createElement("div"); el.className="tl";
+    el.innerHTML=`<div class="k">${k}</div><div class="v num">${v}</div>`;
+    tl.appendChild(el);
+  });
+  const tn=$("trigNote");
+  if(trig.note){ tn.className="trig-eventnote"; tn.innerHTML=trig.note; } else { tn.className=""; tn.innerHTML=""; }
+
+  // チャートに重ねる水平線（トリガーの数値レベル）
+  CHART_LEVELS=trig.chartLevels||[];
+
+  // 日誌用スナップショット（記録時の地合いを自動保存）
+  CURRENT_SNAPSHOT={
+    pair:CURRENT,
+    style:HORIZON_NAME[HORIZON],
+    trend:regP.trend==="range"?"レンジ":((aP.order==="up"||(aP.order!=="down"&&aP.macd>aP.macdSig))?"上昇":"下降")+"トレンド"+(regP.trend==="strong"?"(強)":regP.trend==="emerging"?"(初動)":""),
+    rsi:Math.round(aP.rsi), adx:Math.round(aP.adx),
+    cond:`条件${trig.okCount}/4`,
+    px:fmt(a1.price,d.dec)
+  };
+
+  // updated time
+  const t=new Date();
+  $("updated").textContent=`${t.getHours()}:${String(t.getMinutes()).padStart(2,"0")}:${String(t.getSeconds()).padStart(2,"0")}`;
+  if(!$("jPair").value) $("jPair").value=CURRENT;
+
+  renderCharts();
+
+  // 描画は完了済み。ライブ時はここから裏でデータ取得して差し替える（UIは固まらない）
+  maybeFetchLive();
+}
+
+/* ライブ取得を裏で実行（同期描画を妨げない）。現在ペア優先→他ペア。再入防止で無限ループを防ぐ。 */
+let _fetching=false;
+function staleKeys(){
+  const need=[];
+  ["1H","4H","1D"].forEach(tf=>{ if(!cacheFresh(CURRENT,tf)) need.push(1); });
+  const ptf=HORIZON_TF[HORIZON];
+  ACTIVE_PAIRS.forEach(p=>{ if(p!==CURRENT && !cacheFresh(p,ptf)) need.push(1); });
+  return need;
+}
+function maybeFetchLive(){
+  if(DATA_CONFIG.source!=="live" || !DATA_CONFIG.apiKey) return;
+  if(_fetching) return;
+  if(!staleKeys().length) return;             // 全部新鮮なら何もしない（ループ防止）
+  _fetching=true;
+  ensureData([CURRENT], ["1H","4H","1D"])              // 現在ペアは3足フル
+    .then(()=>{ renderAll(); })
+    .then(()=>ensureData(ACTIVE_PAIRS.filter(p=>p!==CURRENT), [HORIZON_TF[HORIZON]]))  // 他ペアは主要足だけ（無料枠節約）
+    .then(()=>{ buildPairs(); renderWatchlist(); })
+    .catch(()=>{})
+    .then(()=>{ _fetching=false; });
+}
+
+/* ============================================================
+   チャート描画（Canvas・外部ライブラリなし）
+   ============================================================ */
+function setupCanvas(cv, cssH){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth || cv.parentElement.clientWidth || 320;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(cssH*dpr); cv.style.height=cssH+"px";
+  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,cssH);
+  return {ctx, w, h:cssH};
+}
+function niceTicks(lo, hi, target){
+  const range=hi-lo||1; const raw=range/target;
+  const mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const norm=raw/mag;
+  const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  const first=Math.ceil(lo/step)*step;
+  const ticks=[]; for(let v=first; v<=hi+step*0.001; v+=step) ticks.push(Math.round(v/step)*step);
+  return {step, ticks};
+}
+function plotLine(ctx,arr,offset,x,y,color,lw,dash){
+  ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.setLineDash(dash||[]);
+  ctx.lineJoin="round"; ctx.beginPath(); let started=false;
+  for(let i=offset;i<arr.length;i++){ if(arr[i]==null)continue;
+    const px=x(i-offset), py=y(arr[i]); started?ctx.lineTo(px,py):(ctx.moveTo(px,py),started=true);}
+  ctx.stroke(); ctx.setLineDash([]);
+}
+function drawPriceChart(cv, series){
+  const {ctx,w,h}=setupCanvas(cv,238);
+  const padR=48, padT=8, padB=8, plotW=w-padR, plotH=h-padT-padB;
+  const offset=series.length-VIEW_N;
+  const c=closes(series);
+  const s20=sma(c,20), s50=sma(c,50), s200=sma(c,200), mid=sma(c,20), sd=stdev(c,20);
+  const view=series.slice(offset);
+  let lo=Infinity, hi=-Infinity;
+  view.forEach(b=>{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);});
+  for(let i=offset;i<series.length;i++){
+    if(OVERLAYS.bb&&mid[i]!=null){hi=Math.max(hi,mid[i]+2*sd[i]);lo=Math.min(lo,mid[i]-2*sd[i]);}
+    if(OVERLAYS.ma)[s20[i],s50[i]].forEach(v=>{if(v!=null){hi=Math.max(hi,v);lo=Math.min(lo,v);}}); // SMA200は除外（離れすぎるとローソクが潰れるため。枠外は見切れ）
+  }
+  const pad=(hi-lo)*0.08||1; hi+=pad; lo-=pad;
+  const x=i=>(i+0.5)/VIEW_N*plotW;
+  const y=p=>padT+(1-(p-lo)/(hi-lo))*plotH;
+  const dec=PAIR_DEF[CURRENT].dec;
+  // grid + price axis（キリのいい価格に目盛り線）
+  ctx.font="10px ui-monospace,monospace"; ctx.textBaseline="middle"; ctx.textAlign="left";
+  // 縦の目盛り線（一定間隔）
+  ctx.strokeStyle="rgba(255,255,255,0.035)"; ctx.lineWidth=1;
+  for(let i=VIEW_N-1;i>=0;i-=16){ const gx=x(i); ctx.beginPath();ctx.moveTo(gx,padT);ctx.lineTo(gx,padT+plotH);ctx.stroke(); }
+  // 横の目盛り線（キリのいい価格）
+  const tick=niceTicks(lo,hi,5);
+  const sdec= tick.step>=1?0: tick.step>=0.1?1: tick.step>=0.01?2: tick.step>=0.001?3: tick.step>=0.0001?4:5;
+  tick.ticks.forEach(pv=>{ if(pv<lo||pv>hi)return; const py=y(pv);
+    ctx.strokeStyle="rgba(255,255,255,0.08)"; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(plotW,py);ctx.stroke();
+    ctx.fillStyle="#8290ad"; ctx.fillText(pv.toFixed(sdec), plotW+5, py);
+  });
+  // 価格系の描画は枠内にクリップ（離れたMA等が軸ラベルへはみ出さない）
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,padT,plotW,plotH); ctx.clip();
+  // bollinger band fill + mid
+  if(OVERLAYS.bb){
+    ctx.beginPath(); let st=false;
+    for(let i=offset;i<series.length;i++){ if(mid[i]==null)continue; const px=x(i-offset),py=y(mid[i]+2*sd[i]); st?ctx.lineTo(px,py):(ctx.moveTo(px,py),st=true);}
+    for(let i=series.length-1;i>=offset;i--){ if(mid[i]==null)continue; ctx.lineTo(x(i-offset),y(mid[i]-2*sd[i]));}
+    ctx.closePath(); ctx.fillStyle="rgba(91,123,191,0.10)"; ctx.fill();
+    plotLine(ctx,mid,offset,x,y,"rgba(120,150,210,0.45)",1,[3,3]);
+  }
+  // candles
+  const cw=Math.max(1.5, plotW/VIEW_N*0.62);
+  view.forEach((b,i)=>{
+    const cx=x(i), up=b.c>=b.o, col=up?"#27d17c":"#f25563";
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,y(b.h)); ctx.lineTo(cx,y(b.l)); ctx.stroke();
+    const yo=y(b.o), yc=y(b.c);
+    ctx.fillRect(cx-cw/2, Math.min(yo,yc), cw, Math.max(1,Math.abs(yc-yo)));
+  });
+  // moving averages
+  if(OVERLAYS.ma){
+    plotLine(ctx,s200,offset,x,y,"#8a99b5",1.4);
+    plotLine(ctx,s50,offset,x,y,"#46d6cf",1.5);
+    plotLine(ctx,s20,offset,x,y,"#e7b24b",1.6);
+  }
+  // 現在値ライン（点線）
+  const lastC=view[view.length-1].c, ly=y(lastC);
+  ctx.setLineDash([4,3]); ctx.strokeStyle="rgba(231,178,75,0.75)"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,ly); ctx.lineTo(plotW,ly); ctx.stroke(); ctx.setLineDash([]);
+  // エントリー目安の水平線（トリガー連動）
+  const lvlCol={g:"#27d17c",r:"#f25563",n:"#8a99b5"};
+  (CHART_LEVELS||[]).forEach(L=>{
+    if(L.price<lo||L.price>hi) return;
+    const lyL=y(L.price);
+    ctx.setLineDash([2,3]); ctx.strokeStyle=lvlCol[L.cls]||"#8a99b5"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,lyL); ctx.lineTo(plotW,lyL); ctx.stroke(); ctx.setLineDash([]);
+    // 左側にラベル
+    ctx.font="9px -apple-system,sans-serif"; ctx.textBaseline="middle"; ctx.textAlign="left";
+    const tw=ctx.measureText(L.label).width+8;
+    ctx.fillStyle=(lvlCol[L.cls]||"#8a99b5"); ctx.globalAlpha=0.92;
+    ctx.fillRect(2,lyL-7,tw,14); ctx.globalAlpha=1;
+    ctx.fillStyle="#0c1422"; ctx.fillText(L.label,6,lyL+0.5);
+  });
+  ctx.restore();
+  // 現在値ラベル（右マージン・クリップ外）
+  const lbl=lastC.toFixed(dec);
+  ctx.font="bold 10px ui-monospace,monospace"; ctx.textBaseline="middle"; ctx.textAlign="left";
+  const lh=14, lyy=Math.max(padT+lh/2,Math.min(padT+plotH-lh/2,ly));
+  ctx.fillStyle="#e7b24b"; ctx.fillRect(plotW+1,lyy-lh/2,padR-2,lh);
+  ctx.fillStyle="#1a1206"; ctx.fillText(lbl, plotW+5, lyy+0.5);
+  // クロスヘア用ジオメトリ保存
+  PRICE_GEO={view, plotW, dec, rsiArr:rsi(c), macdHist:macd(c).hist, offset};
+}
+function drawRsiChart(cv, series){
+  const {ctx,w,h}=setupCanvas(cv,82);
+  const padR=48, padT=6, padB=6, plotW=w-padR, plotH=h-padT-padB;
+  const r=rsi(closes(series)), offset=series.length-VIEW_N;
+  const x=i=>(i+0.5)/VIEW_N*plotW, y=v=>padT+(1-v/100)*plotH;
+  ctx.fillStyle="rgba(242,85,99,0.07)"; ctx.fillRect(0,y(100),plotW,y(70)-y(100));
+  ctx.fillStyle="rgba(39,209,124,0.07)"; ctx.fillRect(0,y(30),plotW,y(0)-y(30));
+  ctx.setLineDash([3,3]); ctx.strokeStyle="rgba(255,255,255,0.10)"; ctx.lineWidth=1;
+  [70,50,30].forEach(v=>{ctx.beginPath();ctx.moveTo(0,y(v));ctx.lineTo(plotW,y(v));ctx.stroke();});
+  ctx.setLineDash([]);
+  ctx.font="9px ui-monospace,monospace"; ctx.textBaseline="middle"; ctx.textAlign="left"; ctx.fillStyle="#64748f";
+  [70,30].forEach(v=>ctx.fillText(v,plotW+5,y(v)));
+  plotLine(ctx,r,offset,x,y,"#46d6cf",1.6);
+}
+function drawMacdChart(cv, series){
+  const {ctx,w,h}=setupCanvas(cv,82);
+  const padR=48, padT=6, padB=6, plotW=w-padR, plotH=h-padT-padB;
+  const m=macd(closes(series)), offset=series.length-VIEW_N;
+  let mx=0; for(let i=offset;i<series.length;i++)[m.line[i],m.signal[i],m.hist[i]].forEach(v=>{if(v!=null)mx=Math.max(mx,Math.abs(v));});
+  mx=mx||1;
+  const x=i=>(i+0.5)/VIEW_N*plotW, y=v=>padT+(1-(v+mx)/(2*mx))*plotH;
+  ctx.strokeStyle="rgba(255,255,255,0.10)"; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,y(0));ctx.lineTo(plotW,y(0));ctx.stroke();
+  const bw=Math.max(1,plotW/VIEW_N*0.58);
+  for(let i=offset;i<series.length;i++){ if(m.hist[i]==null)continue;
+    const cx=x(i-offset), v=m.hist[i], y0=y(0), yv=y(v);
+    ctx.fillStyle=v>=0?"rgba(39,209,124,0.55)":"rgba(242,85,99,0.55)";
+    ctx.fillRect(cx-bw/2, Math.min(y0,yv), bw, Math.max(1,Math.abs(yv-y0)));}
+  plotLine(ctx,m.line,offset,x,y,"#e7b24b",1.4);
+  plotLine(ctx,m.signal,offset,x,y,"#46d6cf",1.4);
+}
+function renderCharts(){
+  const s=loadSeries(CURRENT,CHART_TF);
+  const tfName={"1H":"1時間足","4H":"4時間足","1D":"日足"}[CHART_TF];
+  $("chartPairLabel").textContent=PAIR_DEF[CURRENT].label+" ・ "+tfName;
+  drawPriceChart($("cvPrice"),s);
+  drawRsiChart($("cvRsi"),s);
+  drawMacdChart($("cvMacd"),s);
+  // legend
+  const leg=[];
+  if(OVERLAYS.ma) leg.push(
+    '<span><i style="background:#e7b24b"></i>20</span>',
+    '<span><i style="background:#46d6cf"></i>50</span>',
+    '<span><i style="background:#8a99b5"></i>200</span>');
+  if(OVERLAYS.bb) leg.push('<span><i style="background:#5b7bbf"></i>ボリンジャー±2σ</span>');
+  leg.push('<span><i class="dot" style="background:#27d17c"></i>陽線</span><span><i class="dot" style="background:#f25563"></i>陰線</span>');
+  $("priceLegend").innerHTML=leg.join("");
+  // toggle button states
+  document.querySelectorAll("#chartToggles .tg").forEach(b=>{
+    b.classList.toggle("off", !OVERLAYS[b.dataset.ov]);
+  });
+}
+
+
+const JKEY="fxnavi_journal_v1";
+function loadJ(){try{return JSON.parse(localStorage.getItem(JKEY)||"[]");}catch(e){return[];}}
+function saveJ(a){try{localStorage.setItem(JKEY,JSON.stringify(a));}catch(e){}}
+function renderJ(){
+  const list=$("jList"); const data=loadJ();
+  if(!data.length){list.innerHTML=`<div class="jempty">まだ記録がありません。判断の根拠を残すと、後で振り返れます。記録時の地合い（トレンド・RSI・条件）は自動で保存されます。</div>`;return;}
+  list.innerHTML="";
+  data.forEach((j,i)=>{
+    const el=document.createElement("div"); el.className="jitem";
+    const snap=j.snap?`<div class="jsnap">記録時：${j.snap.trend} ／ RSI ${j.snap.rsi} ／ ${j.snap.cond} ／ ${j.snap.px}</div>`:"";
+    el.innerHTML=`<div class="jh">
+        <span class="jtag">${j.style}</span><span class="jtag">${j.side}</span><span class="jtag">${j.pair}</span>
+        <span class="jdt">${j.date}</span><span class="jx" data-i="${i}">✕</span></div>
+      ${snap}
+      ${j.note?`<div class="jnote-txt">${j.note.replace(/</g,"&lt;")}</div>`:""}`;
+    el.querySelector(".jx").onclick=()=>{const d=loadJ();d.splice(i,1);saveJ(d);renderJ();};
+    list.appendChild(el);
+  });
+}
+$("jSave").onclick=()=>{
+  const d=loadJ();
+  const t=new Date();
+  d.unshift({style:$("jStyle").value, side:$("jSide").value, pair:$("jPair").value||CURRENT,
+    note:$("jNote").value.trim(),
+    snap:CURRENT_SNAPSHOT?{trend:CURRENT_SNAPSHOT.trend,rsi:CURRENT_SNAPSHOT.rsi,cond:CURRENT_SNAPSHOT.cond,px:CURRENT_SNAPSHOT.px}:null,
+    date:`${t.getMonth()+1}/${t.getDate()} ${t.getHours()}:${String(t.getMinutes()).padStart(2,"0")}`});
+  saveJ(d); $("jNote").value=""; renderJ();
+};
+
+$("reload").onclick=()=>{
+  if(DATA_CONFIG.source==="live"&&DATA_CONFIG.apiKey){ Object.keys(SERIES_CACHE).forEach(k=>delete SERIES_CACHE[k]); }
+  else { SALT++; }
+  renderAll();
+};
+
+/* チャート操作 */
+document.querySelectorAll("#tfTabs .tfbtn").forEach(b=>{
+  b.onclick=()=>{
+    CHART_TF=b.dataset.tf;
+    document.querySelectorAll("#tfTabs .tfbtn").forEach(x=>x.classList.toggle("active",x===b));
+    renderCharts();
+  };
+});
+document.querySelectorAll("#chartToggles .tg").forEach(b=>{
+  b.onclick=()=>{ OVERLAYS[b.dataset.ov]=!OVERLAYS[b.dataset.ov]; renderCharts(); };
+});
+let rsT;
+window.addEventListener("resize",()=>{ clearTimeout(rsT); rsT=setTimeout(()=>{ if(document.querySelector('.view[data-view="basis"]').classList.contains("active")) renderCharts(); },150); });
+
+/* タブ切替 */
+function showView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.dataset.view===name));
+  document.querySelectorAll("#tabbar .navbtn").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
+  if(name==="basis") renderCharts(); // 非表示中はcanvas幅0のため表示時に再描画
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("#tabbar .navbtn").forEach(b=>{ b.onclick=()=>showView(b.dataset.view); });
+
+/* スタイル＝時間軸スイッチ（信号機タップ） */
+function setHorizon(h){
+  if(!HORIZON_TF[h]) return;
+  HORIZON=h; CHART_TF=HORIZON_TF[h];
+  document.querySelectorAll("#tfTabs .tfbtn").forEach(x=>x.classList.toggle("active",x.dataset.tf===CHART_TF));
+  saveSettings();
+  renderAll();
+}
+
+/* チャート クロスヘア（タップで数値を読む） */
+(function(){
+  const wrap=$("priceWrap"), cv=$("cvPrice"), cross=$("cvCross"), readout=$("cvReadout");
+  if(!wrap) return;
+  function show(clientX){
+    if(!PRICE_GEO) return;
+    const rect=cv.getBoundingClientRect();
+    const xpx=clientX-rect.left;
+    if(xpx<0||xpx>PRICE_GEO.plotW){ hide(); return; }
+    const i=Math.max(0,Math.min(VIEW_N-1,Math.floor(xpx/PRICE_GEO.plotW*VIEW_N)));
+    const bar=PRICE_GEO.view[i]; if(!bar){ hide(); return; }
+    const lx=(i+0.5)/VIEW_N*PRICE_GEO.plotW;
+    cross.style.left=lx+"px"; cross.style.display="block";
+    const dec=PRICE_GEO.dec, ago=VIEW_N-1-i;
+    const gi=PRICE_GEO.offset+i;
+    const rv=PRICE_GEO.rsiArr[gi], mv=PRICE_GEO.macdHist[gi];
+    readout.innerHTML=`<b>${ago===0?'最新':ago+'本前'}</b> O${fmt(bar.o,dec)} H${fmt(bar.h,dec)} L${fmt(bar.l,dec)} C${fmt(bar.c,dec)}`
+      +(rv!=null?` ／ RSI ${Math.round(rv)}`:"")+(mv!=null?` MACD ${mv>=0?'+':''}${mv.toFixed(dec>2?4:2)}`:"");
+    readout.style.display="block";
+    readout.style.left=Math.max(2,Math.min(PRICE_GEO.plotW-readout.offsetWidth-2, lx-readout.offsetWidth/2))+"px";
+  }
+  function hide(){ cross.style.display="none"; readout.style.display="none"; }
+  wrap.addEventListener("pointerdown",e=>{ show(e.clientX); });
+  wrap.addEventListener("pointermove",e=>{ if(e.buttons||e.pointerType==="mouse") show(e.clientX); });
+  wrap.addEventListener("pointerleave",hide);
+  wrap.addEventListener("pointerup",()=>setTimeout(hide,1400));
+})();
+
+/* 用語集 */
+const GLOSSARY=[
+  ["トレンド / レンジ","価格が一方向に進む状態がトレンド、上下に行ったり来たりが レンジ。トレンドは順張り、レンジは逆張りが基本。"],
+  ["押し目 / 戻り","上昇中の一時的な下げが「押し目」、下降中の一時的な上げが「戻り」。トレンド方向にここを狙うのがプロの基本。"],
+  ["パーフェクトオーダー","短期・中期・長期の移動平均が綺麗に一方向へ並んだ状態。強いトレンドの証拠。"],
+  ["マルチタイムフレーム","複数の時間軸（日足・4H・1H）で向きを確認すること。揃うほどエントリーが有利。"],
+  ["ATR","1本のローソク足が平均どれだけ動くか。損切り幅やロット量を決める目安。"],
+  ["pips","為替の最小変動単位。クロス円は0.01円＝1pip、ドルストレートは0.0001＝1pip。"],
+  ["損切り（ストップ）","想定が外れた時に損失を確定して撤退する価格。入る前に必ず決める。"],
+  ["スプレッド","買値と売値の差＝実質コスト。スキャルなど短期ほど影響が大きい。"]
+];
+function renderGlossary(){
+  const g=$("glossary"); if(!g) return; g.innerHTML="";
+  GLOSSARY.forEach(([term,def])=>{
+    const el=document.createElement("div"); el.className="gloss";
+    el.innerHTML=`<div class="gloss-h"><span>${term}</span><span class="gloss-c">＋</span></div><div class="gloss-d">${def}</div>`;
+    el.querySelector(".gloss-h").onclick=()=>{const o=el.classList.toggle("open"); el.querySelector(".gloss-c").textContent=o?"−":"＋";};
+    g.appendChild(el);
+  });
+}
+
+/* ガイド */
+const SEENKEY="fxnavi_seen_v1";
+function openGuide(){ $("guide").classList.add("show"); }
+function closeGuide(){ $("guide").classList.remove("show"); try{localStorage.setItem(SEENKEY,"1");}catch(e){} }
+$("guideX").onclick=closeGuide; $("guideOk").onclick=closeGuide;
+$("helpBtn").onclick=openGuide;
+
+/* 設定 */
+function openSettings(){
+  $("setApiKey").value=DATA_CONFIG.apiKey||"";
+  // ペア
+  const pc=$("setPairs"); pc.innerHTML="";
+  Object.keys(PAIR_DEF).forEach(p=>{
+    const on=ACTIVE_PAIRS.includes(p);
+    const el=document.createElement("label"); el.className="set-check"+(on?" on":"");
+    el.innerHTML=`<span class="ck">${on?"✓":""}</span>${p}（${PAIR_DEF[p].label}）`;
+    el.onclick=()=>{ el.classList.toggle("on"); const o=el.classList.contains("on"); el.querySelector(".ck").textContent=o?"✓":""; };
+    el.dataset.pair=p; pc.appendChild(el);
+  });
+  // horizon
+  const hc=$("setHorizon"); hc.innerHTML="";
+  Object.keys(HORIZON_NAME).forEach(k=>{
+    const el=document.createElement("button"); el.className="set-opt"+(k===HORIZON?" on":""); el.textContent=HORIZON_NAME[k]; el.dataset.h=k;
+    el.onclick=()=>{hc.querySelectorAll(".set-opt").forEach(x=>x.classList.remove("on")); el.classList.add("on");};
+    hc.appendChild(el);
+  });
+  // tab
+  const tc=$("setTab"); tc.innerHTML="";
+  [["summary","結論・行動"],["basis","チャート・指標"],["tools","環境・記録"]].forEach(([k,nm])=>{
+    const el=document.createElement("button"); el.className="set-opt"+(k===DEFAULT_TAB?" on":""); el.textContent=nm; el.dataset.t=k;
+    el.onclick=()=>{tc.querySelectorAll(".set-opt").forEach(x=>x.classList.remove("on")); el.classList.add("on");};
+    tc.appendChild(el);
+  });
+  $("settings").classList.add("show");
+}
+$("setBtn").onclick=openSettings;
+$("setX").onclick=()=>$("settings").classList.remove("show");
+$("setSave").onclick=()=>{
+  const pairs=[...document.querySelectorAll("#setPairs .set-check.on")].map(e=>e.dataset.pair);
+  ACTIVE_PAIRS = pairs.length?pairs:Object.keys(PAIR_DEF);
+  const h=document.querySelector("#setHorizon .set-opt.on"); if(h)HORIZON=h.dataset.h;
+  CHART_TF=HORIZON_TF[HORIZON];
+  const t=document.querySelector("#setTab .set-opt.on"); if(t)DEFAULT_TAB=t.dataset.t;
+  const newKey=$("setApiKey").value.trim();
+  if(newKey!==DATA_CONFIG.apiKey){ // キー変更時はキャッシュを破棄して取り直し
+    Object.keys(SERIES_CACHE).forEach(k=>delete SERIES_CACHE[k]); LAST_LIVE_TS=0;
+  }
+  DATA_CONFIG.apiKey=newKey; DATA_CONFIG.source=newKey?"live":"demo";
+  if(!ACTIVE_PAIRS.includes(CURRENT))CURRENT=ACTIVE_PAIRS[0];
+  saveSettings(); updateDataFlag();
+  $("settings").classList.remove("show");
+  document.querySelectorAll("#tfTabs .tfbtn").forEach(x=>x.classList.toggle("active",x.dataset.tf===CHART_TF));
+  renderAll();
+};
+document.querySelectorAll(".overlay").forEach(ov=>{ ov.addEventListener("click",e=>{ if(e.target===ov) ov.classList.remove("show"); }); });
+
+/* init */
+loadSettings();
+renderGlossary();
+showView(DEFAULT_TAB);
+renderAll();
+renderJ();
+try{ if(!localStorage.getItem(SEENKEY)) openGuide(); }catch(e){}
+</script>
+</body>
+</html>
