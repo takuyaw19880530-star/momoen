@@ -44,6 +44,9 @@
   .set-input{width:100%;background:var(--ink-0);border:1px solid var(--line);color:var(--txt);
     border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit}
   .set-note{font-size:10.5px;color:var(--txt-faint);line-height:1.55;margin-top:7px}
+  .mini-lab{font-size:10.5px;color:var(--txt-faint);margin:13px 0 5px;letter-spacing:.03em}
+  .mini-wrap{position:relative;width:100%;margin-bottom:4px}
+  .mini-wrap canvas{width:100%;display:block}
 
   /* ---------- pair tabs ---------- */
   .pairs{display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
@@ -469,6 +472,8 @@
     <div class="cl-summary" id="clSummary"></div>
     <div class="trig-main" id="trigMain">--</div>
     <div class="trig-levels" id="trigLevels"></div>
+    <div class="mini-lab" id="miniLab">チャート（目安の線つき）</div>
+    <div class="canvas-wrap mini-wrap"><canvas class="chart" id="cvMini"></canvas></div>
     <div id="trigNote"></div>
   </section>
 
@@ -1305,6 +1310,9 @@ function renderAll(){
 
   // チャートに重ねる水平線（トリガーの数値レベル）
   CHART_LEVELS=trig.chartLevels||[];
+  // 結論タブのミニチャート（選択スタイルの足＋目安の線）
+  LAST_MINI={series:sP, dec:d.dec};
+  renderMini();
 
   // 日誌用スナップショット（記録時の地合いを自動保存）
   CURRENT_SNAPSHOT={
@@ -1460,6 +1468,53 @@ function drawPriceChart(cv, series){
   // クロスヘア用ジオメトリ保存
   PRICE_GEO={view, plotW, dec, rsiArr:rsi(c), macdHist:macd(c).hist, offset};
 }
+
+/* 結論タブ用ミニチャート（現在ペア・選択スタイルの足／目安の水平線つき・コンパクト） */
+let LAST_MINI=null;
+function renderMini(){
+  if(!LAST_MINI) return;
+  drawMiniChart($("cvMini"), LAST_MINI.series, LAST_MINI.dec);
+}
+function drawMiniChart(cv, series, dec){
+  if(!cv) return;
+  const {ctx,w,h}=setupCanvas(cv,150);
+  const padR=46, padT=6, padB=6, plotW=w-padR, plotH=h-padT-padB;
+  const VN=Math.min(48, series.length);
+  const offset=series.length-VN, view=series.slice(offset);
+  const c=closes(series), mid=sma(c,20), s20=sma(c,20);
+  let lo=Infinity, hi=-Infinity;
+  view.forEach(b=>{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);});
+  for(let i=offset;i<series.length;i++){ if(s20[i]!=null){hi=Math.max(hi,s20[i]);lo=Math.min(lo,s20[i]);} }
+  (CHART_LEVELS||[]).forEach(L=>{ if(L.price>0){hi=Math.max(hi,L.price);lo=Math.min(lo,L.price);} });
+  const pad=(hi-lo)*0.08||1; hi+=pad; lo-=pad;
+  const x=i=>(i+0.5)/VN*plotW, y=p=>padT+(1-(p-lo)/(hi-lo))*plotH;
+  // grid + axis
+  ctx.font="9px ui-monospace,monospace"; ctx.textBaseline="middle"; ctx.textAlign="left";
+  niceTicks(lo,hi,4).ticks.forEach(v=>{ const py=y(v);
+    ctx.strokeStyle="rgba(255,255,255,0.05)"; ctx.lineWidth=1; ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(plotW,py);ctx.stroke();
+    ctx.fillStyle="#64748f"; ctx.fillText(v.toFixed(dec), plotW+4, py); });
+  ctx.save(); ctx.beginPath(); ctx.rect(0,padT,plotW,plotH); ctx.clip();
+  // candles
+  const cw=Math.max(1.5, plotW/VN*0.6);
+  view.forEach((b,i)=>{ const cx=x(i), up=b.c>=b.o, col=up?"#27d17c":"#f25563";
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx,y(b.h));ctx.lineTo(cx,y(b.l));ctx.stroke();
+    const yo=y(b.o),yc=y(b.c); ctx.fillRect(cx-cw/2,Math.min(yo,yc),cw,Math.max(1,Math.abs(yc-yo))); });
+  plotLine(ctx,s20,offset,x,y,"#e7b24b",1.4);
+  // 目安の水平線
+  const lvlCol={g:"#27d17c",r:"#f25563",n:"#8a99b5"};
+  (CHART_LEVELS||[]).forEach(L=>{ if(L.price<lo||L.price>hi)return; const ly=y(L.price);
+    ctx.setLineDash([2,3]); ctx.strokeStyle=lvlCol[L.cls]||"#8a99b5"; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,ly);ctx.lineTo(plotW,ly);ctx.stroke(); ctx.setLineDash([]);
+    ctx.font="8px -apple-system,sans-serif"; const tw=ctx.measureText(L.label).width+6;
+    ctx.fillStyle=lvlCol[L.cls]||"#8a99b5"; ctx.globalAlpha=0.92; ctx.fillRect(2,ly-6,tw,12); ctx.globalAlpha=1;
+    ctx.fillStyle="#0c1422"; ctx.textBaseline="middle"; ctx.fillText(L.label,5,ly); });
+  ctx.restore();
+  // 現在値
+  const last=view[view.length-1].c, ly=y(last);
+  ctx.setLineDash([3,3]); ctx.strokeStyle="rgba(231,178,75,0.7)"; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,ly);ctx.lineTo(plotW,ly);ctx.stroke(); ctx.setLineDash([]);
+}
 function drawRsiChart(cv, series){
   const {ctx,w,h}=setupCanvas(cv,82);
   const padR=48, padT=6, padB=6, plotW=w-padR, plotH=h-padT-padB;
@@ -1568,6 +1623,7 @@ function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.dataset.view===name));
   document.querySelectorAll("#tabbar .navbtn").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
   if(name==="basis") renderCharts(); // 非表示中はcanvas幅0のため表示時に再描画
+  if(name==="summary") renderMini();
   window.scrollTo(0,0);
 }
 document.querySelectorAll("#tabbar .navbtn").forEach(b=>{ b.onclick=()=>showView(b.dataset.view); });
@@ -1673,7 +1729,7 @@ $("setSave").onclick=()=>{
   const h=document.querySelector("#setHorizon .set-opt.on"); if(h)HORIZON=h.dataset.h;
   CHART_TF=HORIZON_TF[HORIZON];
   const t=document.querySelector("#setTab .set-opt.on"); if(t)DEFAULT_TAB=t.dataset.t;
-  const newKey=$("setApiKey").value.trim();
+  const newKey=$("setApiKey").value.replace(/[\s\u3000"'`]/g,""); // 空白/改行/全角空白/引用符を除去
   if(newKey!==DATA_CONFIG.apiKey){ // キー変更時はキャッシュを破棄して取り直し
     Object.keys(SERIES_CACHE).forEach(k=>delete SERIES_CACHE[k]); LAST_LIVE_TS=0;
   }
